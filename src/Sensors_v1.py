@@ -59,4 +59,4 @@ class CamSensors:
  
 if __name__ == '__main__':
     CamSensors().getSensorValues()
-    
+     
