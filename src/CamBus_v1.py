@@ -14,6 +14,7 @@ from contextlib import suppress
 
 from uuid import getnode as get_mac
 from Contador_v1 import Contador
+from Sensors_v1  import CamSensors
 
 configFilename = "CamBus.ini"
 
@@ -36,6 +37,7 @@ class CamBus:
         self.setLogger()
         self.readConfig()
         
+        self.mySensor = CamSensors(self.logger, self.OS)        
         self.logger.info('CamBus successfully started')    
 
     def setLogger(self):
