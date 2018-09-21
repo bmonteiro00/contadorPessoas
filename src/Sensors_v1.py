@@ -56,7 +56,7 @@ class CamSensors:
         print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
         logging.info('OS=   ' +self.OS)
  
-
+ 
 if __name__ == '__main__':
     CamSensors().getSensorValues()
     
