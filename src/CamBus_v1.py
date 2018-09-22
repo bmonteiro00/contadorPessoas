@@ -20,46 +20,55 @@ from MqttClient_v1  import CamMQttClient
 
 configFilename = "CamBus.ini"
 
+# Error values
+CAMBUS_INVALID_MQ_TYPE = -32
+
 class CamBus:
 
     def __del__(self):
         self.saveConfig()
-        print ('CamBus[', self.myPID, '] died')
+        print ('CamBus[', self._PID, '] died')
 
     def __init__(self):
         self.frame = None
         
         ########################################################################################
         # Dados básicos: sistema operacional, PID, e o MAC (para gerar um nome único no MQTT)
-        self.OS = platform.system()
-        self.myPID = os.getpid()
-        self.myID = hex(get_mac())
-        self.myMode = os.getenv('MODE')
+        self._OS = platform.system()
+        self._PID = os.getpid()
+        self._ID = hex(get_mac())
+        self._countFlag = os.getenv('COUNT')
         
         self.setLogger()
         self.readConfig()
         
-        self.mySensor = CamSensors(self.logger, self.OS)
-        self.logger.info('CamBus successfully started')    
-        self.mqtt = CamMQttClient(self.logger, self.OS)
+        self._sensor = CamSensors(self._logger, self._OS)
+        
+        self._mqtt = CamMQttClient(self._logger, self._OS)
+
+        
+        
+
+        self._logger.info('CamBus successfully started')    
 
     def setLogger(self):
         ########################################################################################
         # Sistema de log: pega da variavel de ambiente LOGLEVEL
-            #logger.debug('debug message')
-            #logger.info('info message')
-            #logger.warn('warn message')
-            #logger.error('error message')
-            #logger.critical('critical message')
+            #self._logger.debug('debug message')
+            #self._logger.info('info message')
+            #self._logger.warn('warn message')
+            #self._logger.error('error message')
+            #self._logger.critical('critical message')
+
         logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger(__name__)
         
         if os.getenv('LOGLEVEL') == 'ERROR':
-            self.logger.setLevel(logging.ERROR)        
+            self._logger.setLevel(logging.ERROR)        
         elif os.getenv('LOGLEVEL') == 'DEBUG':
-            self.logger.setLevel(logging.DEBUG)        
+            self._logger.setLevel(logging.DEBUG)        
         else:
-            self.logger.setLevel(logging.INFO)      
+            self._logger.setLevel(logging.INFO)      
 
         # create a file handler
         handler = logging.FileHandler('CamBus.log')
@@ -69,7 +78,7 @@ class CamBus:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         # add the handlers to the logger
-        self.logger.addHandler(handler)
+        self._logger.addHandler(handler)
 
     ########################################################################################
     # Salva parâmetros atuais        
@@ -81,48 +90,63 @@ class CamBus:
         #with suppress(Exception):
         cfgFile = open(configFilename, 'w')            
         ###self.config = configparser.ConfigParser()
-        self.busConfig.set('DEFAULT', 'LAST_TIMESTAMP', ts)
-        self.busConfig.set('DEFAULT', 'LAST_SHUTDOWN',  agora)
+        self._busConfig.set('DEFAULT', 'LAST_TIMESTAMP', ts)
+        self._busConfig.set('DEFAULT', 'LAST_SHUTDOWN',  agora)
             
-        self.busConfig.set('MQTT', 'mqtt', self.mq)
+        self._busConfig.set('MQTT', 'mq', self._mq)
             
-        self.busConfig.write(cfgFile)
+        self._busConfig.write(cfgFile)
         cfgFile.close()
         
     ########################################################################################
     # Lê dados de configuração e último timestamp válido
     def readConfig(self):
-        self.busConfig = configparser.ConfigParser()
-        self.busConfig.read(configFilename)
+        self._busConfig = configparser.ConfigParser()
+        self._busConfig.read(configFilename)
         cfgfile = open(configFilename, 'r')
         
         # valores default
         with suppress(Exception):
-            self.busConfig.add_section('MQTT')
-            self.busConfig.add_section('BUS')
-            self.busConfig.add_section('SENSORS')
+            self._busConfig.add_section('MQTT')
+            self._busConfig.add_section('BUS')
+            self._busConfig.add_section('SENSORS')
 
-        self.busConfig.set('BUS', 'name', 'Vila Cruzeiro')
-        self.busConfig.set('BUS', 'car', '11234')
-        self.busConfig.set('BUS', 'line', '6422-10')
-        self.busConfig.set('BUS', 'status', 'moving')
-        self.busConfig.set('SENSORS', 'timestamp',  '2018-09-15 09:16:57.977719')
-        self.busConfig.set('SENSORS', 'people_in',  '20')
-        self.busConfig.set('SENSORS', 'people_out', '22')
-        self.busConfig.set('SENSORS', 'temp',       '24.1')
-        self.busConfig.set('SENSORS', 'co2',        '99.9')
-        self.busConfig.set('SENSORS', 'pressure',   '99.9')
-        self.busConfig.set('SENSORS', 'gps',        '20.34')
-        self.busConfig.set('SENSORS', 'rain',        'true')
-        self.busConfig.set('SENSORS', 'weight',        '12t')
+        self._busConfig.set('BUS', 'name', 'Vila Cruzeiro')
+        self._busConfig.set('BUS', 'car', '11234')
+        self._busConfig.set('BUS', 'line', '6422-10')
+        self._busConfig.set('BUS', 'status', 'moving')
+        self._busConfig.set('SENSORS', 'timestamp',  '2018-09-15 09:16:57.977719')
+        self._busConfig.set('SENSORS', 'people_in',  '20')
+        self._busConfig.set('SENSORS', 'people_out', '22')
+        self._busConfig.set('SENSORS', 'temp',       '24.1')
+        self._busConfig.set('SENSORS', 'co2',        '99.9')
+        self._busConfig.set('SENSORS', 'pressure',   '99.9')
+        self._busConfig.set('SENSORS', 'gps',        '20.34')
+        self._busConfig.set('SENSORS', 'rain',        'true')
+        self._busConfig.set('SENSORS', 'weight',        '12t')
         
-        self.lastTimestamp = '???'
+       
+        #Cria valores default falsos
+        self._lastTimestamp = '???'
+        self._mq = 'fake'
+        self._mqHost = '127.0.0.1'
+        self._mqPort = '1883'
+        self._mq = 'aws'
+        self._mqHost = 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com'
+        self._mqPort = '8883'
+
+        
         with suppress(Exception):
-            self.lastTimestamp = self.busConfig['DEFAULT']['LAST_TIMESTAMP'] 
+            self._lastTimestamp = self._busConfig['DEFAULT']['LAST_TIMESTAMP'] 
+            self._mq =            self._busConfig['MQTT']['mq'] 
+            self._mqHost =        self._busConfig['MQTT']['host'] 
+            self._mqPort =        self._busConfig['MQTT']['port'] 
         
         agora = str(datetime.datetime.now())
-        logging.info('Starting now: [%s]', agora)
-        logging.info('Last shutdown was: [%s]', self.lastTimestamp)
+        self._logger.info('Starting now: [%s]', agora)
+        self._logger.info('Last shutdown was: [%s]', self._lastTimestamp)
+        
+        
         
         # List all contents
         '''
@@ -135,21 +159,7 @@ class CamBus:
                                           str(type(options))))
         '''   
         
-        ########################################################################################
-        # Conexão MQTT
-        ###kkkself.mq = os.getenv('MQTT')
-        self.mq = 'fake'
-        
-        if self.mq == "AWS":
-            logging.info('using AWS')            
-        elif self.mq == "ECLIPSE":
-            print("using (iot.eclipse.org)")            
-        elif self.mq == "FAKE":
-            self.mq = "fake"
-        else:
-            with suppress(Exception):
-                self.mq = self.busConfig['MQTT']['MQ'] 
-            
+           
         
 #        if self.os == 'Linux':
  #           call('clear', shell = True)
@@ -157,23 +167,38 @@ class CamBus:
    #         call('cls', shell = True) */
    
     def connectMQTT(self):
-        print('falta fazer!')
+        if   self._busConfig['MQTT']['mq'] == 'fake':
+            self._mqtt.setupFake()
+
+        elif self._busConfig['MQTT']['MQ'] == 'mqtt':
+            self._mqtt.setup(self._busConfig['MQTT']['host'], self._busConfig['MQTT']['port'])
+            self._mqtt.connect()
+            
+        elif self._busConfig['MQTT']['MQ'] == 'aws':
+            self._mqtt.setup(self._busConfig['MQTT']['host'], self._busConfig['MQTT']['port'])
+            self._mqtt.AWSConnect()
+            
+        else:
+            self._logger.critical('[MQ] = ' +self._busConfig['MQTT']['MQ'] +', is an invalid option!')
+            sys.exit(CAMBUS_INVALID_MQ_TYPE)
+        
+        
 
 
     def runCamBus(self):
         print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
-        logging.info('OS=   ' +self.OS)
-        logging.info('PID=  ' +str(self.myPID) ) 
-        logging.info('ID=   ' +self.myID)
-        logging.info('mq=   ' +self.mq)
-        logging.info('mode= ' +str(self.myMode) )
+        logging.info('OS=   ' +self._OS)
+        logging.info('PID=  ' +str(self._PID) ) 
+        logging.info('ID=   ' +self._ID)
+        logging.info('mq=   ' +self._mq)
+        logging.info('countFlag= ' +str(self._countFlag) )
         
         self.connectMQTT()
         
-        if( self.myMode ):
+        if(self._countFlag):
             Contador().detectPeople()
         else:
-            print('please use export MODE=x to enable Counting Process')
+            print('please use export COUNT=x to enable Counting Process')
         
         jsonStringA = '{"error_1395946244342":"valueA","error_1395952003":"valueB"}'
         test='{"str": 11, "dex": 12, "con": 10, "int": 16, "wis": 14, "cha": 13} '
