@@ -11,10 +11,12 @@ import platform
 import logging
 import configparser
 from contextlib import suppress
+import json
 
 from uuid import getnode as get_mac
-from Contador_v1 import Contador
-from Sensors_v1  import CamSensors
+from Contador_v1    import Contador
+from Sensors_v1     import CamSensors
+from MqttClient_v1  import CamMQttClient
 
 configFilename = "CamBus.ini"
 
@@ -37,8 +39,9 @@ class CamBus:
         self.setLogger()
         self.readConfig()
         
-        self.mySensor = CamSensors(self.logger, self.OS)        
+        self.mySensor = CamSensors(self.logger, self.OS)
         self.logger.info('CamBus successfully started')    
+        self.mqtt = CamMQttClient(self.logger, self.OS)
 
     def setLogger(self):
         ########################################################################################
@@ -172,7 +175,10 @@ class CamBus:
         else:
             print('please use export MODE=x to enable Counting Process')
         
- 
+        jsonStringA = '{"error_1395946244342":"valueA","error_1395952003":"valueB"}'
+        test='{"str": 11, "dex": 12, "con": 10, "int": 16, "wis": 14, "cha": 13} '
+            # {"error_1395946244342":"valueA","error_1395952003":"valueB"}
+        print(json.loads(test))
 
 if __name__ == '__main__':
     CamBus().runCamBus()
