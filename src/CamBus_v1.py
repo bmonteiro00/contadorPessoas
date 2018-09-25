@@ -5,6 +5,7 @@
 #
 
 import os
+import sys
 import time
 import datetime
 import platform
@@ -93,7 +94,10 @@ class CamBus:
         self._busConfig.set('DEFAULT', 'LAST_TIMESTAMP', ts)
         self._busConfig.set('DEFAULT', 'LAST_SHUTDOWN',  agora)
             
-        self._busConfig.set('MQTT', 'mq', self._mq)
+        self._busConfig.set('MQTT', 'mq',   self._mq)
+        self._busConfig.set('MQTT', 'host', self._host)
+        self._busConfig.set('MQTT', 'port', self._port)
+        
             
         self._busConfig.write(cfgFile)
         cfgFile.close()
@@ -105,12 +109,34 @@ class CamBus:
         self._busConfig.read(configFilename)
         cfgfile = open(configFilename, 'r')
         
-        # valores default
+        # Sessões default
         with suppress(Exception):
             self._busConfig.add_section('MQTT')
+            self._busConfig.add_section('MQTT_eclipse')
+            self._busConfig.add_section('MQTT_aws')
             self._busConfig.add_section('BUS')
             self._busConfig.add_section('SENSORS')
 
+        # valores default
+        self._busConfig.set('MQTT_aws', 'mq', 'aws')
+        self._busConfig.set('MQTT_aws', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
+        self._busConfig.set('MQTT_aws', 'port', '8883')
+        
+        self._busConfig.set('MQTT', 'clientId', 'Teste')
+        self._busConfig.set('MQTT', 'thingName', 'Teste')
+        self._busConfig.set('MQTT', 'caPath', 'aws-iot-rootCA.pem')
+        self._busConfig.set('MQTT', 'certPath', 'e866e9eb47-certificate.pem.crt.txt')
+        self._busConfig.set('MQTT', 'keyPath', 'e866e9eb47-private.pem.key')
+
+        
+        self._busConfig.set('MQTT_eclipse', 'mq', 'eclipse')
+        self._busConfig.set('MQTT_eclipse', 'host', 'm2m.eclipse.org')
+        self._busConfig.set('MQTT_eclipse', 'port', '1883')
+        
+        self._busConfig.set('MQTT_aws', 'mq', 'aws')
+        self._busConfig.set('MQTT_aws', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
+        self._busConfig.set('MQTT_aws', 'port', '8883')
+        
         self._busConfig.set('BUS', 'name', 'Vila Cruzeiro')
         self._busConfig.set('BUS', 'car', '11234')
         self._busConfig.set('BUS', 'line', '6422-10')
@@ -122,26 +148,27 @@ class CamBus:
         self._busConfig.set('SENSORS', 'co2',        '99.9')
         self._busConfig.set('SENSORS', 'pressure',   '99.9')
         self._busConfig.set('SENSORS', 'gps',        '20.34')
-        self._busConfig.set('SENSORS', 'rain',        'true')
-        self._busConfig.set('SENSORS', 'weight',        '12t')
+        self._busConfig.set('SENSORS', 'rain',       'true')
+        self._busConfig.set('SENSORS', 'weight',     '12t')
         
        
         #Cria valores default falsos
         self._lastTimestamp = '???'
-        self._mq = 'fake'
-        self._mqHost = '127.0.0.1'
-        self._mqPort = '1883'
-        self._mq = 'aws'
-        self._mqHost = 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com'
-        self._mqPort = '8883'
+        
+        #with suppress(Exception):
+        self._lastTimestamp = self._busConfig['DEFAULT']['LAST_TIMESTAMP'] 
+        
+        self._name =  self._busConfig['BUS']['name']
+        self._car  =  self._busConfig['BUS']['car']
+        self._line =  self._busConfig['BUS']['line']
 
-        
-        with suppress(Exception):
-            self._lastTimestamp = self._busConfig['DEFAULT']['LAST_TIMESTAMP'] 
-            self._mq =            self._busConfig['MQTT']['mq'] 
-            self._mqHost =        self._busConfig['MQTT']['host'] 
-            self._mqPort =        self._busConfig['MQTT']['port'] 
-        
+        self._mq =       self._busConfig['MQTT']['mq'] 
+        self._host =     self._busConfig['MQTT']['host'] 
+        self._port =     self._busConfig['MQTT']['port'] 
+        self._caPath =   self._busConfig['MQTT']['caPath']
+        self._certPath = self._busConfig['MQTT']['certPath']
+        self._keyPath =  self._busConfig['MQTT']['keyPath']
+
         agora = str(datetime.datetime.now())
         self._logger.info('Starting now: [%s]', agora)
         self._logger.info('Last shutdown was: [%s]', self._lastTimestamp)
@@ -170,20 +197,21 @@ class CamBus:
         if   self._busConfig['MQTT']['mq'] == 'fake':
             self._mqtt.setupFake()
 
-        elif self._busConfig['MQTT']['MQ'] == 'mqtt':
-            self._mqtt.setup(self._busConfig['MQTT']['host'], self._busConfig['MQTT']['port'])
+        elif self._busConfig['MQTT']['MQ'] == 'mqtt'  or  self._busConfig['MQTT']['MQ'] == 'eclipse':
+            self._mqtt.setup(self._host, self._port, self._name, self._car,  self._line)
+            self._mqtt.connect()
+            
+        elif self._busConfig['MQTT']['MQ'] == 'eclipse':
+            self._mqtt.setup(self._host, self._port, self._name, self._car,  self._line)
             self._mqtt.connect()
             
         elif self._busConfig['MQTT']['MQ'] == 'aws':
-            self._mqtt.setup(self._busConfig['MQTT']['host'], self._busConfig['MQTT']['port'])
-            self._mqtt.AWSConnect()
-            
+            self._mqtt.setup(self._host, self._port, self._name, self._car,  self._line)
+            self._mqtt.AWSConnect(self._busConfig['MQTT']['caPath'], self._busConfig['MQTT']['certPath'],  self._busConfig['MQTT']['keyPath'] )
+
         else:
             self._logger.critical('[MQ] = ' +self._busConfig['MQTT']['MQ'] +', is an invalid option!')
             sys.exit(CAMBUS_INVALID_MQ_TYPE)
-        
-        
-
 
     def runCamBus(self):
         print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
