@@ -43,13 +43,9 @@ class CamBus:
         self.setLogger()
         self.readConfig()
         
-        self._sensor = CamSensors(self._logger, self._OS)
-        
-        self._mqtt = CamMQttClient(self._logger, self._OS)
-
-        
-        
-
+        self._sensor = CamSensors(self._logger, self._OS)        
+        self._mqtt = CamMQttClient(self._logger, self._OS, self._lastTimestamp)
+        self._topic = '/sptrans/' +self._name +'/' + self._car
         self._logger.info('CamBus successfully started')    
 
     def setLogger(self):
@@ -98,7 +94,6 @@ class CamBus:
         self._busConfig.set('MQTT', 'host', self._host)
         self._busConfig.set('MQTT', 'port', self._port)
         
-            
         self._busConfig.write(cfgFile)
         cfgFile.close()
         
@@ -118,10 +113,10 @@ class CamBus:
             self._busConfig.add_section('SENSORS')
 
         # valores default
-        self._busConfig.set('MQTT_aws', 'mq', 'aws')
-        self._busConfig.set('MQTT_aws', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
-        self._busConfig.set('MQTT_aws', 'port', '8883')
-        
+        '''self._busConfig.set('MQTT', 'mq', 'eclipse')
+        self._busConfig.set('MQTT', 'host', 'm2m.eclipse.org')
+        self._busConfig.set('MQTT', 'port', '1883')
+        '''
         self._busConfig.set('MQTT', 'clientId', 'Teste')
         self._busConfig.set('MQTT', 'thingName', 'Teste')
         self._busConfig.set('MQTT', 'caPath', 'aws-iot-rootCA.pem')
@@ -193,24 +188,42 @@ class CamBus:
   #      elif self.os == 'Windows':
    #         call('cls', shell = True) */
    
+    def getBusJson(self):
+        Data = {
+                'BUS': {
+                    'Name': self._name,
+                    'Car':  self._car,
+                    'Line': self._line,
+                    'Status': 'start up',
+                    'Last_timestamp': self._lastTimestamp,
+                    'PID': self._PID
+                }
+            }
+        Data['Name'] = 'nommeee'
+        json_string = json.dumps(Data)
+        return json_string
+        
     def connectMQTT(self):
-        if   self._busConfig['MQTT']['mq'] == 'fake':
+        json_string = self.getBusJson()
+       
+        
+        if  self._mq == 'fake':
             self._mqtt.setupFake()
 
-        elif self._busConfig['MQTT']['MQ'] == 'mqtt'  or  self._busConfig['MQTT']['MQ'] == 'eclipse':
-            self._mqtt.setup(self._host, self._port, self._name, self._car,  self._line)
-            self._mqtt.connect()
+        elif self._mq == 'mqtt'  or  self._busConfig['MQTT']['MQ'] == 'eclipse':
+            self._mqtt.setup(self._host, self._port)
+            self._mqtt.connect(self._topic, json_string)
             
-        elif self._busConfig['MQTT']['MQ'] == 'eclipse':
-            self._mqtt.setup(self._host, self._port, self._name, self._car,  self._line)
-            self._mqtt.connect()
+        elif self._mq == 'eclipse':
+            self._mqtt.setup(self._host, self._port)
+            self._mqtt.connect(self.topic, json_string)
             
-        elif self._busConfig['MQTT']['MQ'] == 'aws':
-            self._mqtt.setup(self._host, self._port, self._name, self._car,  self._line)
-            self._mqtt.AWSConnect(self._busConfig['MQTT']['caPath'], self._busConfig['MQTT']['certPath'],  self._busConfig['MQTT']['keyPath'] )
+        elif self._mq == 'aws':
+            self._mqtt.setup(self._host, self._port)
+            self._mqtt.AWSConnect(self._caPath, self._certPath,  self._keyPath, self._topic, json_string )
 
         else:
-            self._logger.critical('[MQ] = ' +self._busConfig['MQTT']['MQ'] +', is an invalid option!')
+            self._logger.critical('[MQ] = ' +self._mq +', is an invalid option!')
             sys.exit(CAMBUS_INVALID_MQ_TYPE)
 
     def runCamBus(self):
@@ -223,15 +236,23 @@ class CamBus:
         
         self.connectMQTT()
         
+        while True:
+            time.sleep( 2 )
+            jsonStringA = '{"error_1395946244342":"valueA","error_1395952003":"valueB"}'
+            test='{"str": 11, "dex": 12, "con": 10, "int": 16, "wis": 14, "cha": 13} '
+            
+            #test['dex']='blá blá'
+            # {"error_1395946244342":"valueA","error_1395952003":"valueB"}
+            print(json.loads(test))
+            #self._mqtt.publish(self._topic, json.dumps(test))
+            self._mqtt.publish(self._topic, self.getBusJson())
+        
         if(self._countFlag):
             Contador().detectPeople()
         else:
             print('please use export COUNT=x to enable Counting Process')
         
-        jsonStringA = '{"error_1395946244342":"valueA","error_1395952003":"valueB"}'
-        test='{"str": 11, "dex": 12, "con": 10, "int": 16, "wis": 14, "cha": 13} '
-            # {"error_1395946244342":"valueA","error_1395952003":"valueB"}
-        print(json.loads(test))
+       
 
 if __name__ == '__main__':
     CamBus().runCamBus()

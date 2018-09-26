@@ -10,20 +10,23 @@ import ssl
 import sys
 from time import sleep
 from random import uniform
+import json
 
 # Error values
 MQTT_HOST_EMPTY = -31
 MQTT_PORT_EMPTY = -32
+MQTT_CONNECT_ERR = -33
 
 
 class CamMQttClient:
     def __del__(self):
         print ('MQtt client[] died')
 
-    def __init__(self, pLogger, pOS):
+    def __init__(self, logger, OS, lastTimestamp):
         self._frame = None
-        self._logger = pLogger
-        self._OS = pOS
+        self._logger = logger
+        self._OS = OS
+        self._lastTimestamp = lastTimestamp
         self._connFlag = False
         self._host = ''
         self._port = ''
@@ -39,14 +42,14 @@ class CamMQttClient:
     def setupFake(self):
         self._fakeFlag = True
     
-    def setup(self, host, port, name, car, line):
+    def setup(self, host, port):
         self._host = host
         self._port = port
-        self._name = name
-        self._car  = car
-        self._line = line
+        
+    def publish(self, topic, json_string):
+        self._mq.publish(topic, json_string, qos=0)
     
-    def connect(self):
+    def connect(self, topic, json_string):
     
         if self._fakeFlag == True:
             return
@@ -59,19 +62,26 @@ class CamMQttClient:
             self._logger.critical('[Port] cannot be empty! Use .setup() first')
             sys.exit(MQTT_PORT_EMPTY)
         
-        self._mq.connect(self._host, int(self._port), keepalive=60)
+        try:
+            self._mq.connect(self._host, int(self._port), keepalive=60)
+        except (IOError, RuntimeError):
+            self._logger.critical('MQTT failed to connect to [' +self._host +':' +self._port +']')
+            sys.exit(MQTT_CONNECT_ERR)
         
-        self._mq.publish('/sptrans/' +self._line +'/' + self._car, "Started!", qos=0)
-        self._mq.loop_forever()
+        self._logger.debug('self._mq.publish(' +topic +', ' +json_string +', qos=0)')
+        self._mq.publish(topic, json_string, qos=0)
+        #self._mq.loop_forever()
 
     
-    def AWSConnect(self, caPath, certPath, keyPath):
+    def AWSConnect(self, caPath, certPath, keyPath, topic, json_string):
         self._mq.tls_set(caPath, certfile=certPath, keyfile=keyPath, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+        self.connect(topic, json_string)
     
     def onConnect(self, client, userdata, flags, rc):
         global _connFlag
         self._connFlag = True
 
+        print('entrei!')
         if rc==0:
             self._logger.info('MQTT connected to [' +self._host +':' +self._port +']')
         else:
@@ -80,6 +90,7 @@ class CamMQttClient:
             # 0: Connection successful 1: Connection refused - incorrect protocol version 2: Connection refused - invalid client identifier 3: Connection refused - server unavailable 4: Connection refused - bad username or password 5: Connection refused
         
         client.subscribe('/sptrans/#')
+        print('saí daqui!')
 
     def onMessage(self, client, userdata, msg):
         print(msg.topic +' [' +str(msg.payload) +']')
