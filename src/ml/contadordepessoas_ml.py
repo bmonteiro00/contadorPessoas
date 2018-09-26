@@ -10,6 +10,7 @@ import Pessoa
 import time
 from matplotlib import pyplot as plt
 import math
+import decimal
 
 
 class Contador:
@@ -19,14 +20,16 @@ class Contador:
 
     def detectPeople(self):
 
-        #_center = [314.67404, 231.52438]
-        _center = [112.0679, 132.63786]
+        _center = [314.67404, 231.52438]
+        #_center = [112.0679, 132.63786]
         list = []
+        list_P = []
+        list_N = []
         svm = cv2.ml.SVM_create()
-        svm.setType(cv2.ml.SVM_C_SVC)
         svm.setKernel(cv2.ml.SVM_LINEAR)
-        svm.setTermCriteria((cv2.TERM_CRITERIA_MAX_ITER, 100, 1e-6))
-        labels = np.array([1, -1, -1, -1])
+        svm.setType(cv2.ml.SVM_C_SVC)
+        svm.setC(2.67)
+        svm.setGamma(5.383)
 
         #Contadore de entrada e saída
         cnt_up = 0
@@ -35,8 +38,8 @@ class Contador:
         #Fonte de video
         #cap = cv2.VideoCapture(0) # Descomente para usar a camera.
         #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\peopleCounter.avi") #Captura um video
-        #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4") #Captura um video
-        cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\bus.avi") #Captura um video
+        cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4") #Captura um video
+        #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\bus.avi") #Captura um video
 
         #Descomente para imprimir as propriedades do video
         """for i in range(19):
@@ -56,10 +59,10 @@ class Contador:
 
         #Linhas de Entrada/Saída
 
-        #line_up = int(2.25*(h/6))
-        #line_down   = int(3.75*(h/6))
-        line_up = int(2*(h/6))    #deve-se adaptar de acordo com as caracteristicas da camera
-        line_down = int(2*(h/6))  #deve-se adaptar de acordo com as caracteristicas da camera
+        line_up = int(2.25*(h/6))
+        line_down   = int(3.75*(h/6))
+        #line_up = int(2*(h/6))    #deve-se adaptar de acordo com as caracteristicas da camera
+        #line_down = int(2*(h/6))  #deve-se adaptar de acordo com as caracteristicas da camera
         print ("Line UP:", line_up)
         print ("Line DOW:", line_down)
 
@@ -176,6 +179,19 @@ class Contador:
                 plt.scatter(center[:, 0], center[:, 1], s=80, c='y', marker='s')
                 plt.xlabel('Height'), plt.ylabel('Weight')
                 plt.show()
+                a = np.float32(list_P)
+                responses = np.array(list_N)
+                #responses = np.float32(responses)
+                print(len(a))
+                print(len(responses))
+                trained = svm.train(a, cv2.ml.ROW_SAMPLE, responses)
+                if (trained):
+                    print("trained", trained)
+                    print("IsTrained", svm.isTrained())
+                    svm.save('svm_data.dat')
+
+                else:
+                    print("nao saolvou")
 
                 #return (cnt_up - cnt_down)
                 #break
@@ -184,18 +200,41 @@ class Contador:
             #################
 
             # RETR_EXTERNAL returns only extreme outer flags. All child contours are left behind.
-            _, contours0, hierarchy = cv2.findContours(mask2,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+            _, contours0, hierarchy = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             for cnt in contours0:
                 area = cv2.contourArea(cnt)
+                peri = cv2.arcLength(cnt, True)
+                M = cv2.moments(cnt)
+                ####
+                #### coloca numa lista para treinamento 1
+                list_P.append(np.float32(cnt.flatten()))
+                list_N.append(1)
+                ###
+
+                ####
+                #### coloca numa lista para treinamento 2
+                #list_P.append(np.float32(cnt.flatten()))
+                #list_N.append(1)
+                ###
+
+                shape = cv2.HuMoments(M).flatten()
+                #print(type(cnt[0]))
+                #print(cv2.HuMoments(M).flatten())
+                #print(cnt.flatten())
+                #print("-------------------------------------------------------------------------------------------------")
+                #print(decimal.Decimal(shape[6]))
+                #print(format((shape[0]), '20f'))
                 #cv2.drawContours(frame, cnt, -1, (0,0,255), 3, 8)
-                if area > areaTH or area < 50:
+                if area > areaTH and (peri > 950 and peri < 2500):
+
                     #####################
                     #   RASTREAMENTO    #
                     #####################
 
                     #Falta agregar condições para multiplas pessoas, saídas e entradas da tela
 
-                    M = cv2.moments(cnt)
+                    #M = cv2.moments(cnt)
+                    #print("Antes dos filtros: ", M)
                     cx = int(M['m10']/M['m00'])
                     cy = int(M['m01']/M['m00'])
 
@@ -214,30 +253,47 @@ class Contador:
                         #if(len(cnt) < 80):
                            # print("Possivel nao pessoa ................")
                             #continue
+                        #print("Shape de nao pessoa: ", cv2.HuMoments(M).flatten())
                         for pessoa in pessoas:
                             if abs(cx - pessoa.getX()) <= w and abs(cy - pessoa.getY()) <= h:
                                 # O objeto está perto de um que já foi detectado anteriormente
                                 new = False
                                 pessoa.updateCoords(cx,cy)   #atualizar coordenadas no objeto e reseta a idade
-                                if pessoa.deslocaCima(line_down,line_up) == True :# and dist < 170 and dist > 70 : #and (pessoa.getOffset() - time.time() < -0.95):
-                                    print((pessoa.getOffset() - time.time()))
+                                if pessoa.deslocaCima(line_down,line_up) == True  and shape[0] < 0.30:# and dist < 170 and dist > 70 : #and (pessoa.getOffset() - time.time() < -0.95):
+                                    print("Diferença de tempo: ", (pessoa.getOffset() - time.time()))
                                     cnt_up += 1;
                                     print ("ID: ",pessoa.getId(),'Entrou às',time.strftime("%c"))
                                     print("Area objeto: " + str(area))
-                                    print(dist)
-                                    #print(M)
+                                    print("Distancia do centroide da pessoa: ", dist)
+                                    print(M)
+                                    print("Perimetro: ", peri)
+                                    print("Shape da pessoa: ", shape[0] < 0.30)
+                                    print("Shape da pessoa: ", shape[0] )
                                     list.append((cx,cy))
+                                    list_P.pop()
+                                    list_N.pop()
+                                    list_P.append(np.float32(cnt.flatten()))
+                                    #print(np.float32(cv2.HuMoments(M)))
+                                    list_N.append(0)
                                     #trainingData = np.matrix(cnt, dtype=np.float32)
                                     #print("Training data ...... ")
                                     #print(trainingData)
-                                elif pessoa.deslocaBaixo(line_down,line_up) == True: # and dist < 170 and dist > 70: # and (pessoa.getOffset() - time.time() < -0.95):
-                                    print((pessoa.getOffset() - time.time()))
+                                elif pessoa.deslocaBaixo(line_down,line_up) == True : # and dist < 170 and dist > 70: # and (pessoa.getOffset() - time.time() < -0.95):
+                                    print("Diferença de tempo: ", (pessoa.getOffset() - time.time()))
                                     cnt_down += 1;
                                     print ("ID: ",pessoa.getId(),'Saiu às',time.strftime("%c"))
                                     print("Area objeto: " + str(area))
-                                    print(dist)
-                                    #print(M)
+                                    print("Distancia do centroide da pessoa: ", dist)
+                                    print(M)
+                                    print("Perimetro: ", peri)
+                                    print("Shape da pessoa: ", shape[0] < 0.30)
+                                    print("Shape da pessoa: ", shape[0])
                                     list.append((cx, cy))
+                                    list_P.pop()
+                                    list_N.pop()
+                                    list_P.append(np.float32(cnt.flatten()))
+                                    #print(np.float32(cv2.HuMoments(M)))
+                                    list_N.append(0)
                                     #trainingData = np.matrix(cnt, dtype=np.float32)
                                     #print("Training data ...... ")
                                     #print(trainingData)
@@ -286,9 +342,9 @@ class Contador:
             titulodown = "Saida "
             dataehora = time.strftime("%c")
             frame = cv2.polylines(frame,[pts_L1],False,line_down_color,thickness=2)
-            #frame = cv2.polylines(frame,[pts_L2],False,line_up_color,thickness=2)
-            #frame = cv2.polylines(frame,[pts_L3],False,(255,255,255),thickness=1)
-            #frame = cv2.polylines(frame,[pts_L4],False,(255,255,255),thickness=1)
+            frame = cv2.polylines(frame,[pts_L2],False,line_up_color,thickness=2)
+            frame = cv2.polylines(frame,[pts_L3],False,(255,255,255),thickness=1)
+            frame = cv2.polylines(frame,[pts_L4],False,(255,255,255),thickness=1)
 
             self.escreveCabecalho(frame, str_up, str_down, titulodown,tituloup,dataehora,font, x_meio)
 

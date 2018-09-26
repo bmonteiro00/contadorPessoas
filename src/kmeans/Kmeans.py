@@ -9,8 +9,8 @@ import math
 #Fonte de video
 #cap = cv2.VideoCapture(0) # Descomente para usar a camera.
 #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\peopleCounter.avi") #Captura um video
-#cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4") #Captura um video
-cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\bus.avi") #Captura um video
+cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4") #Captura um video
+#cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\bus.avi") #Captura um video
 
 
 fgbg = cv2.createBackgroundSubtractorMOG2(500,detectShadows = True)
@@ -71,6 +71,7 @@ while(cap.isOpened()):
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
         ret, label, center = cv2.kmeans(Z, 1, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
 
+        #[(), (), (), ()]
         # Now separate the data, Note the flatten()
         A = Z[label.ravel() == 0]
         B = Z[label.ravel() == 1]
@@ -96,6 +97,7 @@ while(cap.isOpened()):
     _, contours0, hierarchy = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     _center = [314.67404, 231.52438]
     for cnt in contours0:
+        #print(cnt)
         area = cv2.contourArea(cnt)
         # cv2.drawContours(frame, cnt, -1, (0,0,255), 3, 8)
         if area > areaTH:
@@ -113,7 +115,7 @@ while(cap.isOpened()):
 
             dist = math.hypot(_center[0] - cx, _center[1] - cy)
 
-            print(dist)
+            #print(dist)
 
             if(dist < 200):
                 count +=1
