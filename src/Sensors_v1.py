@@ -6,6 +6,7 @@
 
 import os
 import time
+import datetime
 from contextlib import suppress
 import sys 
 #kkkimport RPi.GPIO as GPIO
@@ -15,7 +16,6 @@ SENSOR_CANNOT_IMPORT_GPIO = -21
 
 
 class CamSensors:
-
     def __del__(self):
         if hasattr(self, 'GPIO'):
             self.GPIO.cleanup()
@@ -51,14 +51,28 @@ class CamSensors:
         except RuntimeError:
             self._logger.critical('Error importing GPIO for system [%s]!  This is probably because you need superuser privileges.  You can achieve this by using [sudo] to run your script', self.OS)
             sys.exit(SENSOR_CANNOT_IMPORT_GPIO)
-            
+        
+         # Default value 
+        self._Temp = 23
         # sucesso
         self._logger.info('Sensors[%s] successfully loaded', self._OS)   
 
-    def getSensorValues(self):
-        
-        print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
-        logging.info('OS=   ' +self._OS)
+    def getSensorJson(self):
+        if self._OS == 'Windows':
+            self._Temp += 1
+            self._logger.info('getSensorValues(' +self._OS +')')
+            Data = {
+                    'GPS':   self._OS,
+                    'temp':  self._Temp,
+                    'rain':  True,
+                    'Status': 'start up',
+                    'mode': 'simulated',
+                    'now': str(datetime.datetime.now())   
+                }
+         
+        Data['GPS'] = 'bla'
+        return Data
+
  
  
 if __name__ == '__main__':

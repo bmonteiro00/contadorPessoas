@@ -108,10 +108,14 @@ class CamBus:
         with suppress(Exception):
             self._busConfig.add_section('MQTT')
             self._busConfig.add_section('MQTT_eclipse')
+            self._busConfig.add_section('MQTT_local')
             self._busConfig.add_section('MQTT_aws')
             self._busConfig.add_section('BUS')
             self._busConfig.add_section('SENSORS')
 
+        self._busConfig.set('DEFAULT', 'Contador', 'Contador_v1')
+        self._busConfig.set('DEFAULT', 'Sensors', 'Sensors_v1')
+        
         # valores default
         '''self._busConfig.set('MQTT', 'mq', 'eclipse')
         self._busConfig.set('MQTT', 'host', 'm2m.eclipse.org')
@@ -127,6 +131,10 @@ class CamBus:
         self._busConfig.set('MQTT_eclipse', 'mq', 'eclipse')
         self._busConfig.set('MQTT_eclipse', 'host', 'm2m.eclipse.org')
         self._busConfig.set('MQTT_eclipse', 'port', '1883')
+        
+        self._busConfig.set('MQTT_local', 'mq', 'mqtt')
+        self._busConfig.set('MQTT_local', 'host', 'localhost')
+        self._busConfig.set('MQTT_local', 'port', '1883')
         
         self._busConfig.set('MQTT_aws', 'mq', 'aws')
         self._busConfig.set('MQTT_aws', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
@@ -150,19 +158,19 @@ class CamBus:
         #Cria valores default falsos
         self._lastTimestamp = '???'
         
-        #with suppress(Exception):
-        self._lastTimestamp = self._busConfig['DEFAULT']['LAST_TIMESTAMP'] 
+        with suppress(Exception):
+            self._lastTimestamp = self._busConfig['DEFAULT']['LAST_TIMESTAMP'] 
         
-        self._name =  self._busConfig['BUS']['name']
-        self._car  =  self._busConfig['BUS']['car']
-        self._line =  self._busConfig['BUS']['line']
+            self._name =  self._busConfig['BUS']['name']
+            self._car  =  self._busConfig['BUS']['car']
+            self._line =  self._busConfig['BUS']['line']
 
-        self._mq =       self._busConfig['MQTT']['mq'] 
-        self._host =     self._busConfig['MQTT']['host'] 
-        self._port =     self._busConfig['MQTT']['port'] 
-        self._caPath =   self._busConfig['MQTT']['caPath']
-        self._certPath = self._busConfig['MQTT']['certPath']
-        self._keyPath =  self._busConfig['MQTT']['keyPath']
+            self._mq =       self._busConfig['MQTT']['mq'] 
+            self._host =     self._busConfig['MQTT']['host'] 
+            self._port =     self._busConfig['MQTT']['port'] 
+            self._caPath =   self._busConfig['MQTT']['caPath']
+            self._certPath = self._busConfig['MQTT']['certPath']
+            self._keyPath =  self._busConfig['MQTT']['keyPath']
 
         agora = str(datetime.datetime.now())
         self._logger.info('Starting now: [%s]', agora)
@@ -190,18 +198,27 @@ class CamBus:
    
     def getBusJson(self):
         Data = {
-                'BUS': {
-                    'Name': self._name,
-                    'Car':  self._car,
-                    'Line': self._line,
-                    'Status': 'start up',
-                    'Last_timestamp': self._lastTimestamp,
-                    'PID': self._PID
-                }
+                'Name': self._name,
+                'Car':  self._car,
+                'Line': self._line,
+                'Status': 'start up',
+                'Last_timestamp': self._lastTimestamp,
+                'PID': self._PID
             }
         Data['Name'] = 'nommeee'
         json_string = json.dumps(Data)
         return json_string
+        
+    # Aqui será trocado por uma função dentro da classe do Bruno
+    def getCounterJson(self):
+        Data = {
+                'in_people':        17,
+                'out_people':       54,
+                'used_model':       self._busConfig['MQTT']['mq'] ,
+                'last_sample_time': self._lastTimestamp,
+            }
+        return Data
+
         
     def connectMQTT(self):
         json_string = self.getBusJson()
@@ -238,14 +255,22 @@ class CamBus:
         
         while True:
             time.sleep( 2 )
-            jsonStringA = '{"error_1395946244342":"valueA","error_1395952003":"valueB"}'
+            bData = {
+                    'BUS': True,
+                    'COUNTER': True,
+                    'SENSORS': True                    
+                }
             test='{"str": 11, "dex": 12, "con": 10, "int": 16, "wis": 14, "cha": 13} '
             
+            bData['SENSORS'] = self._sensor.getSensorJson()
+            bData['BUS'] =     self.getBusJson()
+            bData['COUNTER'] = self.getCounterJson()
             #test['dex']='blá blá'
             # {"error_1395946244342":"valueA","error_1395952003":"valueB"}
-            print(json.loads(test))
+            #print(self._sensor.getSensorValues())
             #self._mqtt.publish(self._topic, json.dumps(test))
-            self._mqtt.publish(self._topic, self.getBusJson())
+            #self._mqtt.publish(self._topic, json.dumps(self._sensor.getSensorValues()) )
+            self._mqtt.publish(self._topic, json.dumps(bData) )
         
         if(self._countFlag):
             Contador().detectPeople()

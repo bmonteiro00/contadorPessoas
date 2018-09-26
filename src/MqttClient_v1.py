@@ -47,6 +47,7 @@ class CamMQttClient:
         self._port = port
         
     def publish(self, topic, json_string):
+        print('publish(' +self._host +')  ' +topic +', ' +json_string)
         self._mq.publish(topic, json_string, qos=0)
     
     def connect(self, topic, json_string):
@@ -70,6 +71,7 @@ class CamMQttClient:
         
         self._logger.debug('self._mq.publish(' +topic +', ' +json_string +', qos=0)')
         self._mq.publish(topic, json_string, qos=0)
+        self._mq.subscribe('/sptrans/#')
         #self._mq.loop_forever()
 
     
