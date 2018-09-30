@@ -47,7 +47,7 @@ class CamMQttClient:
         self._port = port
         
     def publish(self, topic, json_string):
-        print('publish(' +self._host +')  ' +topic +', ' +json_string)
+        print('publish(' +self._host +')  ' +topic +', \n' +json_string)
         self._mq.publish(topic, json_string, qos=0)
     
     def connect(self, topic, subscribe_to, json_string):

@@ -99,6 +99,16 @@ class CamBus:
         self._busConfig.write(cfgFile)
         cfgFile.close()
         
+    # Tenta ler, se não existir cria com o valor default passado como argumento
+    def configSetDefault(self, section, key, value):
+        try:
+            self._busConfig[section][key]
+
+        except:
+            with suppress(Exception):
+                self._busConfig.add_section(section)
+            self._busConfig.set(section, key, value)
+        
     ########################################################################################
     # Lê dados de configuração e último timestamp válido
     def readConfig(self):
@@ -109,55 +119,62 @@ class CamBus:
         # Sessões default
         with suppress(Exception):
             self._busConfig.add_section('MQTT')
+        with suppress(Exception):
             self._busConfig.add_section('MQTT_eclipse')
+        with suppress(Exception):
             self._busConfig.add_section('MQTT_local')
+        with suppress(Exception):
             self._busConfig.add_section('MQTT_aws')
+        with suppress(Exception):
             self._busConfig.add_section('BUS')
+        with suppress(Exception):
             self._busConfig.add_section('SENSORS')
 
-        self._busConfig.set('DEFAULT', 'Contador', 'Contador_v1')
-        self._busConfig.set('DEFAULT', 'Sensors', 'Sensors_v1')
+        self.configSetDefault('DEFAULT', 'Contador_class', 'Contador_v1')
+        self.configSetDefault('DEFAULT', 'Sensors_class', 'Sensors_v1')
         
         # valores default
-        self._busConfig.set('MQTT', 'mq', 'aws')
-        self._busConfig.set('MQTT', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
-        self._busConfig.set('MQTT', 'port', '8883')
-        self._busConfig.set('MQTT', 'base_topic', '/aws/')
-        self._busConfig.set('MQTT', 'subscribe_to', '/aws/command/#')
+        self.configSetDefault('MQTT', 'mq', 'aws')
+        self.configSetDefault('MQTT', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
+        self.configSetDefault('MQTT', 'port', '8883')
+        self.configSetDefault('MQTT', 'base_topic', '/aws/')
+        self.configSetDefault('MQTT', 'subscribe_to', '/aws/command/#')
         
-        self._busConfig.set('MQTT', 'clientId', 'Teste')
-        self._busConfig.set('MQTT', 'thingName', 'Teste')
-        self._busConfig.set('MQTT', 'caPath', 'aws-iot-rootCA.pem')
-        self._busConfig.set('MQTT', 'certPath', 'e866e9eb47-certificate.pem.crt.txt')
-        self._busConfig.set('MQTT', 'keyPath', 'e866e9eb47-private.pem.key')
+        self.configSetDefault('MQTT', 'clientId', 'Teste')
+        self.configSetDefault('MQTT', 'thingName', 'Teste')
+        self.configSetDefault('MQTT', 'caPath', 'aws-iot-rootCA.pem')
+        self.configSetDefault('MQTT', 'certPath', 'e866e9eb47-certificate.pem.crt.txt')
+        self.configSetDefault('MQTT', 'keyPath', 'e866e9eb47-private.pem.key')
+        self.configSetDefault('MQTT', 'publish_interval', '5')
 
         
-        self._busConfig.set('MQTT_eclipse', 'mq', 'eclipse')
-        self._busConfig.set('MQTT_eclipse', 'host', 'm2m.eclipse.org')
-        self._busConfig.set('MQTT_eclipse', 'port', '1883')
+        self.configSetDefault('MQTT_eclipse', 'mq', 'eclipse')
+        self.configSetDefault('MQTT_eclipse', 'host', 'm2m.eclipse.org')
+        self.configSetDefault('MQTT_eclipse', 'port', '1883')
         
-        self._busConfig.set('MQTT_local', 'mq', 'mqtt')
-        self._busConfig.set('MQTT_local', 'host', 'localhost')
-        self._busConfig.set('MQTT_local', 'port', '1883')
+        self.configSetDefault('MQTT_local', 'mq', 'mqtt')
+        self.configSetDefault('MQTT_local', 'host', 'localhost')
+        self.configSetDefault('MQTT_local', 'port', '1883')
         
-        self._busConfig.set('MQTT_aws', 'mq', 'aws')
-        self._busConfig.set('MQTT_aws', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
-        self._busConfig.set('MQTT_aws', 'port', '8883')
+        self.configSetDefault('MQTT_aws', 'mq', 'aws')
+        self.configSetDefault('MQTT_aws', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
+        self.configSetDefault('MQTT_aws', 'port', '8883')
         
-        self._busConfig.set('BUS', 'name', 'Vila Cruzeiro')
-        self._busConfig.set('BUS', 'car', '11234')
-        self._busConfig.set('BUS', 'line', '6422-10')
-        self._busConfig.set('BUS', 'status', 'moving')
-        self._busConfig.set('SENSORS', 'timestamp',  '2018-09-15 09:16:57.977719')
-        self._busConfig.set('SENSORS', 'people_in',  '20')
-        self._busConfig.set('SENSORS', 'people_out', '22')
-        self._busConfig.set('SENSORS', 'temp',       '24.1')
-        self._busConfig.set('SENSORS', 'co2',        '99.9')
-        self._busConfig.set('SENSORS', 'pressure',   '99.9')
-        self._busConfig.set('SENSORS', 'gps',        '20.34')
-        self._busConfig.set('SENSORS', 'rain',       'true')
-        self._busConfig.set('SENSORS', 'weight',     '12t')
-        self._busConfig.set('SENSORS', 'publish_interval', '5')
+        self.configSetDefault('BUS', 'name', 'Vila Cruzeiro')
+        self.configSetDefault('BUS', 'car', '11234')
+        self.configSetDefault('BUS', 'line', '6422-10')
+        self.configSetDefault('BUS', 'status', 'moving')
+        
+        self.configSetDefault('SENSORS', 'timestamp',  '2018-09-15 09:16:57.977719')
+        self.configSetDefault('SENSORS', 'people_in',  '20')
+        self.configSetDefault('SENSORS', 'people_out', '22')
+        self.configSetDefault('SENSORS', 'temp',       '24.1')
+        self.configSetDefault('SENSORS', 'co2',        '99.9')
+        self.configSetDefault('SENSORS', 'pressure',   '99.9')
+        self.configSetDefault('SENSORS', 'gps',        '20.34')
+        self.configSetDefault('SENSORS', 'rain',       'true')
+        self.configSetDefault('SENSORS', 'weight',     '12t')
+        self.configSetDefault('SENSORS', 'publish_interval', '5')
         
        
         #Cria valores default falsos
@@ -166,42 +183,22 @@ class CamBus:
         with suppress(Exception):
             self._lastTimestamp = self._busConfig['DEFAULT']['LAST_TIMESTAMP'] 
         
-            self._name =  self._busConfig['BUS']['name']
-            self._car  =  self._busConfig['BUS']['car']
-            self._line =  self._busConfig['BUS']['line']
+        # Lê os valores existentes para variáveis locais
+        self._name =  self._busConfig['BUS']['name']
+        self._car  =  self._busConfig['BUS']['car']
+        self._line =  self._busConfig['BUS']['line']
 
-            self._mq =       self._busConfig['MQTT']['mq'] 
-            self._host =     self._busConfig['MQTT']['host'] 
-            self._port =     self._busConfig['MQTT']['port'] 
-            self._caPath =   self._busConfig['MQTT']['caPath']
-            self._certPath = self._busConfig['MQTT']['certPath']
-            self._keyPath =  self._busConfig['MQTT']['keyPath']
-            
+        self._mq =       self._busConfig['MQTT']['mq'] 
+        self._host =     self._busConfig['MQTT']['host'] 
+        self._port =     self._busConfig['MQTT']['port'] 
+        self._caPath =   self._busConfig['MQTT']['caPath']
+        self._certPath = self._busConfig['MQTT']['certPath']
+        self._keyPath =  self._busConfig['MQTT']['keyPath']
         self._publishInterval = int(self._busConfig['MQTT']['publish_interval'] )
 
         agora = str(datetime.datetime.now())
         self._logger.info('Starting now: [%s]', agora)
         self._logger.info('Last shutdown was: [%s]', self._lastTimestamp)
-        
-        
-        
-        # List all contents
-        '''
-        print("List all contents")
-        for section in config.sections():
-            print("Section: %s" % section)
-            for options in config.options(section):
-                print("x %s:::%s:::%s" % (options,
-                                          config.get(section, options),
-                                          str(type(options))))
-        '''   
-        
-           
-        
-#        if self.os == 'Linux':
- #           call('clear', shell = True)
-  #      elif self.os == 'Windows':
-   #         call('cls', shell = True) */
    
     def getBusJson(self):
         Data = {

@@ -60,10 +60,10 @@ class CamSensors:
     def getJson(self):
         if self._OS == 'Windows':
             self._Temp += 1
-            self._logger.info('getSensorValues(' +self._OS +')')
+            self._logger.debug('getSensorValues(' +self._OS +')')
             Data =  [
                         {
-                            'name': 'Temperatura',
+                            'name': 'Temp',
                             'type': 'centigrade',
                             'value':  self._Temp
                         } , 
