@@ -44,8 +44,10 @@ awsport = 8883
 clientId = "Teste"
 thingName = "Teste"
 caPath = "aws-iot-rootCA.pem"
-certPath = "e866e9eb47-certificate.pem.crt.txt"
-keyPath = "e866e9eb47-private.pem.key"
+#certPath = "e866e9eb47-certificate.pem.crt"
+certPath = 'a6ff6f9036-certificate.pem.crt'
+#keyPath = "e866e9eb47-private.pem.key"
+keyPath = 'a6ff6f9036-private.pem.key'
 
 mqttc.tls_set(caPath, certfile=certPath, keyfile=keyPath, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
 

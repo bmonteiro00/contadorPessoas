@@ -45,7 +45,7 @@ class CamBus:
         
         self._sensor = CamSensors(self._logger, self._OS)        
         self._mqtt = CamMQttClient(self._logger, self._OS, self._lastTimestamp)
-        self._topic = '/sptrans/' +self._name +'/' + self._car
+        self._topic = '/aws/things/RaspDobrowok/' +self._name +'/' + self._car
         self._logger.info('CamBus successfully started')    
 
     def setLogger(self):
@@ -117,10 +117,10 @@ class CamBus:
         self._busConfig.set('DEFAULT', 'Sensors', 'Sensors_v1')
         
         # valores default
-        '''self._busConfig.set('MQTT', 'mq', 'eclipse')
-        self._busConfig.set('MQTT', 'host', 'm2m.eclipse.org')
-        self._busConfig.set('MQTT', 'port', '1883')
-        '''
+        self._busConfig.set('MQTT', 'mq', 'aws')
+        self._busConfig.set('MQTT', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
+        self._busConfig.set('MQTT', 'port', '8883')
+        
         self._busConfig.set('MQTT', 'clientId', 'Teste')
         self._busConfig.set('MQTT', 'thingName', 'Teste')
         self._busConfig.set('MQTT', 'caPath', 'aws-iot-rootCA.pem')

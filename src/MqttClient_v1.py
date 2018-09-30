@@ -71,7 +71,7 @@ class CamMQttClient:
         
         self._logger.debug('self._mq.publish(' +topic +', ' +json_string +', qos=0)')
         self._mq.publish(topic, json_string, qos=0)
-        self._mq.subscribe('/sptrans/#')
+        self._mq.subscribe('/aws/things/RaspDobrowok/#')
         #self._mq.loop_forever()
 
     
@@ -91,7 +91,7 @@ class CamMQttClient:
             pass #todo 
             # 0: Connection successful 1: Connection refused - incorrect protocol version 2: Connection refused - invalid client identifier 3: Connection refused - server unavailable 4: Connection refused - bad username or password 5: Connection refused
         
-        client.subscribe('/sptrans/#')
+        client.subscribe('/aws/things/RaspDobrowok/#')
         print('saí daqui!')
 
     def onMessage(self, client, userdata, msg):
