@@ -57,20 +57,24 @@ class CamSensors:
         # sucesso
         self._logger.info('Sensors[%s] successfully loaded', self._OS)   
 
-    def getSensorJson(self):
+    def getJson(self):
         if self._OS == 'Windows':
             self._Temp += 1
             self._logger.info('getSensorValues(' +self._OS +')')
-            Data = {
-                    'GPS':   self._OS,
-                    'temp':  self._Temp,
-                    'rain':  True,
-                    'Status': 'start up',
-                    'mode': 'simulated',
-                    'now': str(datetime.datetime.now())   
-                }
+            Data =  [
+                        {
+                            'name': 'Temperatura',
+                            'type': 'centigrade',
+                            'value':  self._Temp
+                        } , 
+                        {
+                            'name': 'CO2',
+                            'type': 'ppm',
+                            'value': self._Temp
+                        }
+                    ]
          
-        Data['GPS'] = 'bla'
+        #Data['GPS'] = 'bla'
         return Data
 
  

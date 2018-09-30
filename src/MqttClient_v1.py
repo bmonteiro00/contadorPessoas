@@ -50,7 +50,7 @@ class CamMQttClient:
         print('publish(' +self._host +')  ' +topic +', ' +json_string)
         self._mq.publish(topic, json_string, qos=0)
     
-    def connect(self, topic, json_string):
+    def connect(self, topic, subscribe_to, json_string):
     
         if self._fakeFlag == True:
             return
@@ -70,14 +70,14 @@ class CamMQttClient:
             sys.exit(MQTT_CONNECT_ERR)
         
         self._logger.debug('self._mq.publish(' +topic +', ' +json_string +', qos=0)')
+        self._mq.subscribe(subscribe_to)
         self._mq.publish(topic, json_string, qos=0)
-        self._mq.subscribe('/aws/things/RaspDobrowok/#')
         #self._mq.loop_forever()
 
     
-    def AWSConnect(self, caPath, certPath, keyPath, topic, json_string):
+    def AWSConnect(self, caPath, certPath, keyPath, topic, subscribeTo, jsonString):
         self._mq.tls_set(caPath, certfile=certPath, keyfile=keyPath, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
-        self.connect(topic, json_string)
+        self.connect(topic, subscribeTo, jsonString)
     
     def onConnect(self, client, userdata, flags, rc):
         global _connFlag
@@ -91,7 +91,7 @@ class CamMQttClient:
             pass #todo 
             # 0: Connection successful 1: Connection refused - incorrect protocol version 2: Connection refused - invalid client identifier 3: Connection refused - server unavailable 4: Connection refused - bad username or password 5: Connection refused
         
-        client.subscribe('/aws/things/RaspDobrowok/#')
+        client.subscribe('/aws/action/#')
         print('saí daqui!')
 
     def onMessage(self, client, userdata, msg):

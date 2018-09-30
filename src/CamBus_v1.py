@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import datetime
+import threading
 import platform
 import logging
 import configparser
@@ -38,14 +39,15 @@ class CamBus:
         self._OS = platform.system()
         self._PID = os.getpid()
         self._ID = hex(get_mac())
-        self._countFlag = os.getenv('COUNT')
         
         self.setLogger()
         self.readConfig()
         
-        self._sensor = CamSensors(self._logger, self._OS)        
+        self._sensor = CamSensors(self._logger, self._OS)
+        self._counter = Contador(self._logger)
         self._mqtt = CamMQttClient(self._logger, self._OS, self._lastTimestamp)
-        self._topic = '/aws/things/RaspDobrowok/' +self._name +'/' + self._car
+        self._subscribeTo = self._busConfig['MQTT']['SUBSCRIBE_TO']
+        self._topic =       self._busConfig['MQTT']['BASE_TOPIC'] +self._name +'/' + self._car
         self._logger.info('CamBus successfully started')    
 
     def setLogger(self):
@@ -120,6 +122,8 @@ class CamBus:
         self._busConfig.set('MQTT', 'mq', 'aws')
         self._busConfig.set('MQTT', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
         self._busConfig.set('MQTT', 'port', '8883')
+        self._busConfig.set('MQTT', 'base_topic', '/aws/')
+        self._busConfig.set('MQTT', 'subscribe_to', '/aws/command/#')
         
         self._busConfig.set('MQTT', 'clientId', 'Teste')
         self._busConfig.set('MQTT', 'thingName', 'Teste')
@@ -153,6 +157,7 @@ class CamBus:
         self._busConfig.set('SENSORS', 'gps',        '20.34')
         self._busConfig.set('SENSORS', 'rain',       'true')
         self._busConfig.set('SENSORS', 'weight',     '12t')
+        self._busConfig.set('SENSORS', 'publish_interval', '5')
         
        
         #Cria valores default falsos
@@ -171,6 +176,8 @@ class CamBus:
             self._caPath =   self._busConfig['MQTT']['caPath']
             self._certPath = self._busConfig['MQTT']['certPath']
             self._keyPath =  self._busConfig['MQTT']['keyPath']
+            
+        self._publishInterval = int(self._busConfig['MQTT']['publish_interval'] )
 
         agora = str(datetime.datetime.now())
         self._logger.info('Starting now: [%s]', agora)
@@ -205,23 +212,11 @@ class CamBus:
                 'Last_timestamp': self._lastTimestamp,
                 'PID': self._PID
             }
-        Data['Name'] = 'nommeee'
-        json_string = json.dumps(Data)
-        return json_string
-        
-    # Aqui será trocado por uma função dentro da classe do Bruno
-    def getCounterJson(self):
-        Data = {
-                'in_people':        17,
-                'out_people':       54,
-                'used_model':       self._busConfig['MQTT']['mq'] ,
-                'last_sample_time': self._lastTimestamp,
-            }
+        #Data['Name'] = 'nommeee'
         return Data
-
         
     def connectMQTT(self):
-        json_string = self.getBusJson()
+        json_string = json.dumps(self.getBusJson())
        
         
         if  self._mq == 'fake':
@@ -229,15 +224,15 @@ class CamBus:
 
         elif self._mq == 'mqtt'  or  self._busConfig['MQTT']['MQ'] == 'eclipse':
             self._mqtt.setup(self._host, self._port)
-            self._mqtt.connect(self._topic, json_string)
+            self._mqtt.connect(self._topic, self._subscribeTo, json_string)
             
         elif self._mq == 'eclipse':
             self._mqtt.setup(self._host, self._port)
-            self._mqtt.connect(self.topic, json_string)
+            self._mqtt.connect(self.topic, self._subscribeTo, json_string)
             
         elif self._mq == 'aws':
             self._mqtt.setup(self._host, self._port)
-            self._mqtt.AWSConnect(self._caPath, self._certPath,  self._keyPath, self._topic, json_string )
+            self._mqtt.AWSConnect(self._caPath, self._certPath,  self._keyPath, self._topic, self._subscribeTo, json_string )
 
         else:
             self._logger.critical('[MQ] = ' +self._mq +', is an invalid option!')
@@ -245,16 +240,20 @@ class CamBus:
 
     def runCamBus(self):
         print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
-        logging.info('OS=   ' +self._OS)
-        logging.info('PID=  ' +str(self._PID) ) 
-        logging.info('ID=   ' +self._ID)
-        logging.info('mq=   ' +self._mq)
-        logging.info('countFlag= ' +str(self._countFlag) )
+        self._logger.info('OS=   ' +self._OS)
+        self._logger.info('PID=  ' +str(self._PID) ) 
+        self._logger.info('ID=   ' +self._ID)
+        self._logger.info('mq=   ' +self._mq)
+        self._logger.info('threadId= ' +str(threading.current_thread()) )
         
         self.connectMQTT()
         
+        self._counter.run()
+        
+        
         while True:
-            time.sleep( 2 )
+            # Loop principal do programa
+            time.sleep( self._publishInterval )
             bData = {
                     'BUS': True,
                     'COUNTER': True,
@@ -262,9 +261,11 @@ class CamBus:
                 }
             test='{"str": 11, "dex": 12, "con": 10, "int": 16, "wis": 14, "cha": 13} '
             
-            bData['SENSORS'] = self._sensor.getSensorJson()
+            bData['SENSORS'] = self._sensor.getJson()
             bData['BUS'] =     self.getBusJson()
-            bData['COUNTER'] = self.getCounterJson()
+            bData['BUS']['Status'] = 'running'
+            
+            bData['COUNTER'] = self._counter.getJson()
             #test['dex']='blá blá'
             # {"error_1395946244342":"valueA","error_1395952003":"valueB"}
             #print(self._sensor.getSensorValues())

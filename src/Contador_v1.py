@@ -4,23 +4,59 @@
 #
 #
 
+import os
+import time
+import threading
+from random import randint
 import numpy as np
 import cv2
 import Pessoa
-import time
-import os
 
 class Contador:
 
-    def __init__(self):
+    def __init__(self, logger):
         self.id = os.getpid()
         self.frame = None
+        self._countFlag = os.getenv('COUNT')
+        self._logger = logger
+        self._logger.info('countFlag= ' +str(self._countFlag) )
+        
+        self._countUp = 0
+        self._countDown = 0
+        self._model = 'Basic OpenCV'
 
+    def run(self):
+        # Roda dentro de uma thread
+        if(self._countFlag):
+            T1 = threading.Thread(target=self.detectPeople)
+            T1.daemon = True    # Permite CTR+C parar o progama!
+            T1.start()
+        else:
+            T2 = threading.Thread(target=self.detectPeopleSimulator)
+            T2.daemon = True
+            T2.start()
+        
+    def getJson(self):
+        Data =  {
+                    'count_up':   self._countUp,
+                    'count_down': self._countDown,
+                    'model':      self._model
+                }
+
+        return Data
+        
+    def detectPeopleSimulator(self):
+        self._logger.info('threadId= ' +str(threading.current_thread()) )
+        while(True):
+            time.sleep( 2 )
+            self._countUp = randint(0, 9)
+            self._countDown = randint(0, 9)
+        
     def detectPeople(self):
 
         #Contadore de entrada e saída
-        cnt_up = 0
-        cnt_down = 0
+        self._countUp = 0
+        self._countDown = 0
 
         #Fonte de video
         #cap = cv2.VideoCapture(0) # Descomente para usar a camera.
@@ -131,9 +167,9 @@ class Contador:
                 
             except:
                 print('EOF')
-                print ('Entrou:',cnt_up)
-                print ('Saiu:',cnt_down)
-                return (cnt_up - cnt_down)
+                print ('Entrou:',self._countUp)
+                print ('Saiu:',self._countDown)
+                return (self._countUp - self._countDown)
                 #break
             #################
             #   CONTORNOS   #
@@ -169,11 +205,11 @@ class Contador:
                                 new = False
                                 pessoa.updateCoords(cx,cy)   #atualizar coordenadas no objeto e reseta a idade
                                 if pessoa.deslocaCima(line_down,line_up) == True:
-                                    cnt_up += 1;
+                                    self._countUp += 1;
                                     print ("ID: ",pessoa.getId(),'Entrou às',time.strftime("%c"))
                                     print("Area objeto: " + str(area))
                                 elif pessoa.deslocaBaixo(line_down,line_up) == True:
-                                    cnt_down += 1;
+                                    self._countDown += 1;
                                     print ("ID: ",pessoa.getId(),'Saiu às',time.strftime("%c"))
                                     print("Area objeto: " + str(area))
                                 break
@@ -215,8 +251,8 @@ class Contador:
             #################
             #   IMAGEM      #
             #################
-            str_up = 'Entraram '+ str(cnt_up)
-            str_down = 'Sairam '+ str(cnt_down)
+            str_up = 'Entraram '+ str(self._countUp)
+            str_down = 'Sairam '+ str(self._countDown)
             tituloup = "Entrada "
             titulodown = "Saida "
             dataehora = time.strftime("%c")
