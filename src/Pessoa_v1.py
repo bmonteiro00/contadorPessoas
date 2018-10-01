@@ -6,16 +6,13 @@
 
 from random import randint
 
-
 class Pessoa:
     tracks = []
 
-    def __init__(self, i, xi, yi, max_age, offset):
+    def __init__(self, i, xi, yi, max_age):
         self.i = i
         self.x = xi
         self.y = yi
-        self.xOrientation = xi
-        self.yOrientation = yi
         self.tracks = []
         self.R = randint(0, 255)
         self.G = randint(0, 255)
@@ -25,8 +22,6 @@ class Pessoa:
         self.age = 0
         self.max_age = max_age
         self.dir = None
-        self.offset = offset
-        self.yOrientationInicial = yi
 
     def getRGB(self):
         return (self.R, self.G, self.B)
@@ -49,9 +44,6 @@ class Pessoa:
     def getY(self):
         return self.y
 
-    def getOffset(self):
-        return self.offset
-
     def updateCoords(self, xn, yn):
         self.age = 0
         self.tracks.append([self.x, self.y])
@@ -65,10 +57,9 @@ class Pessoa:
         return self.done
 
     def deslocaCima(self, mid_start, mid_end):
-
         if len(self.tracks) >= 2:
             if self.state == '0':
-                if self.tracks[-1][1] < mid_end and self.tracks[-2][1] >= mid_end: #  and self.yOrientationInicial > self.y:
+                if self.tracks[-1][1] < mid_end and self.tracks[-2][1] >= mid_end:
                     state = '1'
                     self.dir = 'up'
                     return True
@@ -80,7 +71,7 @@ class Pessoa:
     def deslocaBaixo(self, mid_start, mid_end):
         if len(self.tracks) >= 2:
             if self.state == '0':
-                if self.tracks[-1][1] > mid_start and self.tracks[-2][1] <= mid_start: # and self.yOrientationInicial < self.y:
+                if self.tracks[-1][1] > mid_start and self.tracks[-2][1] <= mid_start:
                     state = '1'
                     self.dir = 'down'
                     return True
