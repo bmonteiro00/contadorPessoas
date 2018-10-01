@@ -28,10 +28,12 @@ class Contador:
     def run(self):
         # Roda dentro de uma thread
         if(self._countFlag):
+            self._model = 'Basic OpenCV'
             T1 = threading.Thread(target=self.detectPeople)
             T1.daemon = True    # Permite CTR+C parar o progama!
             T1.start()
         else:
+            self._model = 'dummy'
             T2 = threading.Thread(target=self.detectPeopleSimulator)
             T2.daemon = True
             T2.start()
@@ -46,7 +48,7 @@ class Contador:
         return Data
         
     def detectPeopleSimulator(self):
-        self._logger.info('threadId= ' +str(threading.current_thread()) )
+        self._logger.info('CounterThread= ' +str(threading.current_thread()) )
         while(True):
             time.sleep( 2 )
             self._countUp = randint(0, 9)

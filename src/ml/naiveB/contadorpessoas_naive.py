@@ -39,6 +39,7 @@ class Contador:
         #cap = cv2.VideoCapture(0) # Descomente para usar a camera.
         #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\peopleCounter.avi") #Captura um video
         cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4") #Captura um video
+        cap = cv2.VideoCapture("..\\..\\bus.avi") #Captura um video
         #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\bus.avi") #Captura um video
 
         #Descomente para imprimir as propriedades do video

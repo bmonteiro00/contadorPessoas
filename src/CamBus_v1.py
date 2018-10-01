@@ -28,6 +28,18 @@ CAMBUS_INVALID_MQ_TYPE = -32
 class CamBus:
 
     def __del__(self):
+        #Publica mensagem indicando que caiu
+        bData = {
+            'BUS': True,
+            'COUNTER': 'off',
+            'SENSORS': 'off'                    
+        }
+        
+        bData['BUS'] = self.getJson()
+        bData['BUS']['Status'] = 'shut down'
+        self._mqtt.publish(self._topic, json.dumps(bData) )
+        
+        # Salva configurações mudadas
         self.saveConfig()
         print ('CamBus[', self._PID, '] died')
 
@@ -174,7 +186,6 @@ class CamBus:
         self.configSetDefault('SENSORS', 'gps',        '20.34')
         self.configSetDefault('SENSORS', 'rain',       'true')
         self.configSetDefault('SENSORS', 'weight',     '12t')
-        self.configSetDefault('SENSORS', 'publish_interval', '5')
         
        
         #Cria valores default falsos
@@ -200,36 +211,40 @@ class CamBus:
         self._logger.info('Starting now: [%s]', agora)
         self._logger.info('Last shutdown was: [%s]', self._lastTimestamp)
    
-    def getBusJson(self):
+    def getJson(self):
         Data = {
                 'Name': self._name,
                 'Car':  self._car,
                 'Line': self._line,
-                'Status': 'start up',
+                'Status': 'dummy',
                 'Last_timestamp': self._lastTimestamp,
                 'PID': self._PID
-            }
-        #Data['Name'] = 'nommeee'
+                }
         return Data
         
     def connectMQTT(self):
-        json_string = json.dumps(self.getBusJson())
-       
-        
+        bData = {
+                'BUS':     True,
+                'COUNTER': 'off-line',
+                'SENSORS': 'off-line'                    
+                }
+        bData['BUS'] = self.getJson()
+        bData['BUS']['Status'] = 'start up'
+            
         if  self._mq == 'fake':
             self._mqtt.setupFake()
 
         elif self._mq == 'mqtt'  or  self._busConfig['MQTT']['MQ'] == 'eclipse':
             self._mqtt.setup(self._host, self._port)
-            self._mqtt.connect(self._topic, self._subscribeTo, json_string)
+            self._mqtt.connect(self._topic, self._subscribeTo, bData)
             
         elif self._mq == 'eclipse':
             self._mqtt.setup(self._host, self._port)
-            self._mqtt.connect(self.topic, self._subscribeTo, json_string)
+            self._mqtt.connect(self.topic, self._subscribeTo, bData)
             
         elif self._mq == 'aws':
             self._mqtt.setup(self._host, self._port)
-            self._mqtt.AWSConnect(self._caPath, self._certPath,  self._keyPath, self._topic, self._subscribeTo, json_string )
+            self._mqtt.AWSConnect(self._caPath, self._certPath,  self._keyPath, self._topic, self._subscribeTo, bData )
 
         else:
             self._logger.critical('[MQ] = ' +self._mq +', is an invalid option!')
@@ -241,12 +256,13 @@ class CamBus:
         self._logger.info('PID=  ' +str(self._PID) ) 
         self._logger.info('ID=   ' +self._ID)
         self._logger.info('mq=   ' +self._mq)
-        self._logger.info('threadId= ' +str(threading.current_thread()) )
+        self._logger.info('MainThread= ' +str(threading.current_thread()) )
         
         self.connectMQTT()
         
-        self._counter.run()
-        
+        # Infinite loops, in threads
+        self._mqtt.run() 
+        self._counter.run()        
         
         while True:
             # Loop principal do programa
@@ -256,18 +272,12 @@ class CamBus:
                     'COUNTER': True,
                     'SENSORS': True                    
                 }
-            test='{"str": 11, "dex": 12, "con": 10, "int": 16, "wis": 14, "cha": 13} '
             
-            bData['SENSORS'] = self._sensor.getJson()
-            bData['BUS'] =     self.getBusJson()
+            bData['SENSORS'] =       self._sensor.getJson()
+            bData['BUS'] =           self.getJson()
             bData['BUS']['Status'] = 'running'
             
             bData['COUNTER'] = self._counter.getJson()
-            #test['dex']='blá blá'
-            # {"error_1395946244342":"valueA","error_1395952003":"valueB"}
-            #print(self._sensor.getSensorValues())
-            #self._mqtt.publish(self._topic, json.dumps(test))
-            #self._mqtt.publish(self._topic, json.dumps(self._sensor.getSensorValues()) )
             self._mqtt.publish(self._topic, json.dumps(bData) )
         
         if(self._countFlag):

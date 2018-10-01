@@ -8,6 +8,7 @@ import paho.mqtt.client as paho
 import socket
 import ssl
 import sys
+import threading
 from time import sleep
 from random import uniform
 import json
@@ -39,6 +40,16 @@ class CamMQttClient:
 
         #mq.on_log = on_log
 
+    def run(self):
+        # Roda dentro de uma thread
+        T1 = threading.Thread(target=self.loop)
+        T1.daemon = True    # Permite CTR+C parar o progama!
+        T1.start()
+        
+    def loop(self):
+        self._logger.info('MQTTThread= ' +str(threading.current_thread()) )
+        self._mq.loop_forever()
+
     def setupFake(self):
         self._fakeFlag = True
     
@@ -48,10 +59,9 @@ class CamMQttClient:
         
     def publish(self, topic, json_string):
         print('publish(' +self._host +')  ' +topic +', \n' +json_string)
-        self._mq.publish(topic, json_string, qos=0)
+        self._mq.publish(topic, json_string, qos=1)
     
-    def connect(self, topic, subscribe_to, json_string):
-    
+    def connect(self, topic, subscribe_to, jSon):
         if self._fakeFlag == True:
             return
             
@@ -65,15 +75,15 @@ class CamMQttClient:
         
         try:
             self._mq.connect(self._host, int(self._port), keepalive=60)
+          
         except (IOError, RuntimeError):
             self._logger.critical('MQTT failed to connect to [' +self._host +':' +self._port +']')
             sys.exit(MQTT_CONNECT_ERR)
-        
-        self._logger.debug('self._mq.publish(' +topic +', ' +json_string +', qos=0)')
+            
+        self._logger.debug('self._mq.publish(' +topic +', ' +json.dumps(jSon) +', qos=0)')
         self._mq.subscribe(subscribe_to)
-        self._mq.publish(topic, json_string, qos=0)
-        #self._mq.loop_forever()
-
+        #jSon[1][3] = 'start up'
+        self._mq.publish(topic, json.dumps(jSon), qos=0)
     
     def AWSConnect(self, caPath, certPath, keyPath, topic, subscribeTo, jsonString):
         self._mq.tls_set(caPath, certfile=certPath, keyfile=keyPath, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
