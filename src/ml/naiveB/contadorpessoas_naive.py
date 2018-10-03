@@ -38,7 +38,7 @@ class Contador:
         #Fonte de video
         #cap = cv2.VideoCapture(0) # Descomente para usar a camera.
         #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\peopleCounter.avi") #Captura um video
-        cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4") #Captura um video
+        #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4") #Captura um video
         cap = cv2.VideoCapture("..\\..\\bus.avi") #Captura um video
         #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\bus.avi") #Captura um video
 
@@ -98,7 +98,7 @@ class Contador:
         pts_L4 = pts_L4.reshape((-1,1,2))
 
         #Substrator de fundo
-        fgbg = cv2.createBackgroundSubtractorMOG2(300,detectShadows = False)
+        fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows = False)
 
         #Elementos estruturantes para filtros morfoogicos
         kernelOp = np.ones((3,3),np.uint8)
@@ -228,7 +228,7 @@ class Contador:
                 #print(decimal.Decimal(shape[6]))
                 #print(format((shape[0]), '20f'))
                 #cv2.drawContours(frame, cnt, -1, (0,0,255), 3, 8)
-                if area > areaTH and (peri > 950 and peri < 2500):
+                if area > areaTH: #and (peri > 950 and peri < 2500):
 
                     #####################
                     #   RASTREAMENTO    #
@@ -262,7 +262,7 @@ class Contador:
                                 # O objeto está perto de um que já foi detectado anteriormente
                                 new = False
                                 pessoa.updateCoords(cx,cy)   #atualizar coordenadas no objeto e reseta a idade
-                                if pessoa.deslocaCima(line_down,line_up) == True  and shape[0] < 0.30:# and dist < 170 and dist > 70 : #and (pessoa.getOffset() - time.time() < -0.95):
+                                if pessoa.deslocaCima(line_down,line_up) == True: #  and shape[0] < 0.30:# and dist < 170 and dist > 70 : #and (pessoa.getOffset() - time.time() < -0.95):
                                     print("Diferença de tempo: ", (pessoa.getOffset() - time.time()))
                                     cnt_up += 1;
                                     print ("ID: ",pessoa.getId(),'Entrou às',time.strftime("%c"))

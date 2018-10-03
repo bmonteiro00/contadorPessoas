@@ -22,8 +22,8 @@ class Contador:
         # Fonte de video
         # cap = cv2.VideoCapture(0) # Descomente para usar a camera.
         # cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\peopleCounter.avi") #Captura um video
-        self.cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4")  # Captura um video
-        # cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\bus.avi") #Captura um video
+        #self.cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4")  # Captura um video
+        self.cap = cv2.VideoCapture("..\\..\\bus.avi") #Captura um video
         self.w = self.cap.get(3)
         self.h = self.cap.get(4)
 
@@ -126,7 +126,7 @@ class Contador:
                                 # O objeto está perto de um que já foi detectado anteriormente
                                 new = False
                                 pessoa.updateCoords(cx, cy)   #atualizar coordenadas no objeto e reseta a idade
-                                if pessoa.deslocaCima(self.line_down, self.line_up) and (str(predict) == "[[1]]" or shape[0][0] < 0.30):
+                                if pessoa.deslocaCima(self.line_down, self.line_up) and (str(predict) == "[[1]]" ):
                                     if dictEntrada.get(pessoa.getId()) != pessoa.getId():
                                         self.cnt_up += 1;
                                         print("-------------------------------------------------------------------------------------------------------")
@@ -137,7 +137,7 @@ class Contador:
 
                                     dictEntrada[pessoa.getId()] = pessoa.getId()
 
-                                elif pessoa.deslocaBaixo(self.line_down, self.line_up) and (str(predict) == "[[1]]" or shape[0][0] < 0.30):
+                                elif pessoa.deslocaBaixo(self.line_down, self.line_up) and (str(predict) == "[[1]]" ):
 
                                     if dictSaida.get(pessoa.getId()) != pessoa.getId():
                                         self.cnt_down += 1;
