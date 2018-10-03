@@ -7,6 +7,7 @@
 import os
 import time
 import threading
+import logging
 from random import randint
 import numpy as np
 import cv2
@@ -18,12 +19,13 @@ class Contador:
         self.id = os.getpid()
         self.frame = None
         self._countFlag = os.getenv('COUNT')
-        self._logger = logger
-        self._logger.info('countFlag= ' +str(self._countFlag) )
+        self.LOG = logger
+        self.LOG.info('countFlag= ' +str(self._countFlag) )
         
         self._countUp = 0
         self._countDown = 0
         self._model = 'Basic OpenCV'
+        self.LOG.info('Contador[%s] successfully loaded', self._model)   
 
     def run(self):
         # Roda dentro de uma thread
@@ -48,7 +50,7 @@ class Contador:
         return Data
         
     def detectPeopleSimulator(self):
-        self._logger.info('CounterThread= ' +str(threading.current_thread()) )
+        self.LOG.info('CounterThread= ' +str(threading.current_thread()) )
         while(True):
             time.sleep( 2 )
             self._countUp = randint(0, 9)
@@ -56,7 +58,7 @@ class Contador:
         
     def detectPeople(self):
 
-        #Contadore de entrada e saída
+        #Contadore de entrada e saida
         self._countUp = 0
         self._countDown = 0
 
@@ -82,7 +84,7 @@ class Contador:
         areaTH = frameArea/225
         print ('Area Threshold', areaTH) # Area de contorno usada para detectar uma pessoa
 
-        #Linhas de Entrada/Saída
+        #Linhas de Entrada/Saida
 
         #line_up = int(2.25*(h/6))
         #line_down   = int(3.75*(h/6))
@@ -131,7 +133,7 @@ class Contador:
         kernelCl = np.ones((11,11),np.uint8)
         kernelCl2 = np.ones((8, 8), np.uint8)
 
-        #Inicialização de variaveis Globais
+        #Inicializao de variaveis Globais
         font = cv2.FONT_HERSHEY_SIMPLEX
         pessoas = []
         max_p_age = 5
@@ -139,7 +141,7 @@ class Contador:
 
         while(cap.isOpened()):
             ##for image in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-            #Lê uma imagem de uma fonte de video
+            #Le uma imagem de uma fonte de video
 
 
             ret, frame = cap.read()
@@ -152,18 +154,18 @@ class Contador:
             #   PRE-PROCESSAMENTO   #
             #########################
 
-            #Aplica subtração de fundo
+            #Aplica subtracao de fundo
             fgmask = fgbg.apply(frame)
             fgmask2 = fgbg.apply(frame)
 
-            #Binarização para eliminar sombras (color gris)
+            #Binarizacao para eliminar sombras (color gris)
             try:
                 ret,imBin= cv2.threshold(fgmask,128,255,cv2.THRESH_BINARY)
                 ret,imBin2 = cv2.threshold(fgmask2,128,255,cv2.THRESH_BINARY)
-                #Opening (erode->dilate) para remover o ruído.
+                #Opening (erode->dilate) para remover o ruido.
                 mask = cv2.morphologyEx(imBin, cv2.MORPH_OPEN, kernelOp)
                 mask2 = cv2.morphologyEx(imBin2, cv2.MORPH_OPEN, kernelOp)
-                #Closing (dilate -> erode) para juntar regiões brancas.
+                #Closing (dilate -> erode) para juntar regioes brancas.
                 mask =  cv2.morphologyEx(mask , cv2.MORPH_CLOSE, kernelCl)
                 mask2 = cv2.morphologyEx(mask2, cv2.MORPH_CLOSE, kernelCl)
                 
@@ -187,7 +189,7 @@ class Contador:
                     #   RASTREAMENTO    #
                     #####################
 
-                    #Falta agregar condições para multiplas pessoas, saídas e entradas da tela
+                    #Falta agregar condicoes para multiplas pessoas, saidas e entradas da tela
 
                     M = cv2.moments(cnt)
                     cx = int(M['m10']/M['m00'])
@@ -203,16 +205,16 @@ class Contador:
                         #print(x, y, w, h)
                         for pessoa in pessoas:
                             if abs(cx - pessoa.getX()) <= w and abs(cy - pessoa.getY()) <= h:
-                                # O objeto está perto de um que já foi detectado anteriormente
+                                # O objeto estao perto de um que ja foi detectado anteriormente
                                 new = False
                                 pessoa.updateCoords(cx,cy)   #atualizar coordenadas no objeto e reseta a idade
                                 if pessoa.deslocaCima(line_down,line_up) == True:
                                     self._countUp += 1;
-                                    print ("ID: ",pessoa.getId(),'Entrou às',time.strftime("%c"))
+                                    print ("ID: ",pessoa.getId(),'Entrou as',time.strftime("%c"))
                                     print("Area objeto: " + str(area))
                                 elif pessoa.deslocaBaixo(line_down,line_up) == True:
                                     self._countDown += 1;
-                                    print ("ID: ",pessoa.getId(),'Saiu às',time.strftime("%c"))
+                                    print ("ID: ",pessoa.getId(),'Saiu as',time.strftime("%c"))
                                     print("Area objeto: " + str(area))
                                 break
                             if pessoa.getState() == '1':
@@ -226,7 +228,7 @@ class Contador:
                                 pessoas.pop(index)
                                 del pessoa #libera a memoria de variavel i.
                         if new == True:
-                            p = Pessoa.Pessoa(pid, cx, cy, max_p_age)
+                            p = Pessoa.Pessoa(pid, cx, cy, max_p_age, 0) #para que serve parametro [offset]???
                             pessoas.append(p)
                             pid += 1
                     #################
@@ -239,7 +241,7 @@ class Contador:
             #END for cnt in contours0
 
             #########################
-            # DESENHAR TRAJETÓRIAS  #
+            # DESENHAR TRAJETORIAS  #
             #########################
             for pessoa in pessoas:
                 if len(pessoa.getTracks()) >= 2:
@@ -290,5 +292,6 @@ class Contador:
         cv2.putText(frame, dataehora, (420, 20), font, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
 
 if __name__ == '__main__':
-    c = Contador()
+    LOG = logging.getLogger(__name__)
+    c = Contador(LOG)
     c.detectPeople()

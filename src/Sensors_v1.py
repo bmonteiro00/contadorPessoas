@@ -7,7 +7,7 @@
 import os
 import time
 import datetime
-from contextlib import suppress
+#from contextlib import suppress
 import sys 
 #kkkimport RPi.GPIO as GPIO
 
@@ -25,7 +25,7 @@ class CamSensors:
     def __init__(self, logger, OS):
         self.frame = None
        
-        self._logger = logger
+        self.LOG = logger
         self._OS = OS
         
         # Tenta importar a biblioteca GPIO correta para o hardware
@@ -45,22 +45,22 @@ class CamSensors:
 
             else:
                 # Do the default
-                self._logger.critical('Unknown operational system [' +self._OS +']')
+                self.LOG.critical('Unknown operational system [' +self._OS +']')
                 raise
             
         except RuntimeError:
-            self._logger.critical('Error importing GPIO for system [%s]!  This is probably because you need superuser privileges.  You can achieve this by using [sudo] to run your script', self.OS)
+            self.LOG.critical('Error importing GPIO for system [%s]!  This is probably because you need superuser privileges.  You can achieve this by using [sudo] to run your script', self.OS)
             sys.exit(SENSOR_CANNOT_IMPORT_GPIO)
         
          # Default value 
         self._Temp = 23
         # sucesso
-        self._logger.info('Sensors[%s] successfully loaded', self._OS)   
+        self.LOG.info('Sensors[%s] successfully loaded', self._OS)
 
     def getJson(self):
         if self._OS == 'Windows':
             self._Temp += 1
-            self._logger.debug('getSensorValues(' +self._OS +')')
+            self.LOG.debug('getSensorValues(' +self._OS +')')
             Data =  [
                         {
                             'name': 'Temp',

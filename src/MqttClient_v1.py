@@ -25,7 +25,7 @@ class CamMQttClient:
 
     def __init__(self, logger, OS, lastTimestamp):
         self._frame = None
-        self._logger = logger
+        self.LOG = logger
         self._OS = OS
         self._lastTimestamp = lastTimestamp
         self._connFlag = False
@@ -37,6 +37,8 @@ class CamMQttClient:
         self._mq.on_connect = self.onConnect
         self._mq.on_message = self.onMessage
         self._mq.on_disconnect = self.onDisconnect
+        
+        self.LOG.info('MQtt[%s] successfully loaded', self._OS)
 
         #mq.on_log = on_log
 
@@ -47,7 +49,7 @@ class CamMQttClient:
         T1.start()
         
     def loop(self):
-        self._logger.info('MQTTThread= ' +str(threading.current_thread()) )
+        self.LOG.info('MQTTThread= ' +str(threading.current_thread()) )
         self._mq.loop_forever()
 
     def setupFake(self):
@@ -66,21 +68,21 @@ class CamMQttClient:
             return
             
         if (not self._host) or (self._host == ""):
-            self._logger.critical('[Host] cannot be empty! Use .setup() first')
+            self.LOG.critical('[Host] cannot be empty! Use .setup() first')
             sys.exit(MQTT_HOST_EMPTY)
             
         elif (not self._port) or (self._host == ""):
-            self._logger.critical('[Port] cannot be empty! Use .setup() first')
+            self.LOG.critical('[Port] cannot be empty! Use .setup() first')
             sys.exit(MQTT_PORT_EMPTY)
         
         try:
             self._mq.connect(self._host, int(self._port), keepalive=60)
           
         except (IOError, RuntimeError):
-            self._logger.critical('MQTT failed to connect to [' +self._host +':' +self._port +']')
+            self.LOG.critical('MQTT failed to connect to [' +self._host +':' +self._port +']')
             sys.exit(MQTT_CONNECT_ERR)
             
-        self._logger.debug('self._mq.publish(' +topic +', ' +json.dumps(jSon) +', qos=0)')
+        self.LOG.debug('self._mq.publish(' +topic +', ' +json.dumps(jSon) +', qos=0)')
         self._mq.subscribe(subscribe_to)
         #jSon[1][3] = 'start up'
         self._mq.publish(topic, json.dumps(jSon), qos=0)
@@ -95,25 +97,25 @@ class CamMQttClient:
 
         print('entrei!')
         if rc==0:
-            self._logger.info('MQTT connected to [' +self._host +':' +self._port +']')
+            self.LOG.info('MQTT connected to [' +self._host +':' +self._port +']')
         else:
-            self._logger.error('MQTT error [' +rc +' when connecting to [' +self._host +':' +self._port +']')
+            self.LOG.error('MQTT error [' +rc +' when connecting to [' +self._host +':' +self._port +']')
             pass #todo 
             # 0: Connection successful 1: Connection refused - incorrect protocol version 2: Connection refused - invalid client identifier 3: Connection refused - server unavailable 4: Connection refused - bad username or password 5: Connection refused
         
         client.subscribe('/aws/action/#')
-        print('saí daqui!')
+        print('saiu daqui!')
 
     def onMessage(self, client, userdata, msg):
         print(msg.topic +' [' +str(msg.payload) +']')
         
     def onDisconnect(self, client, userdata, rc):
         if rc != 0:
-            self._logger.info('MQTT was disconnected from [' +self._host +':' +self._port +'] with error [' +str(rc) +']')
+            self.LOG.info('MQTT was disconnected from [' +self._host +':' +self._port +'] with error [' +str(rc) +']')
             # ToDo: reconectar????
 
         else:
-            self._logger.error('MQTT connection was forcibly closed by the remote host [' +rc +']')
+            self.LOG.error('MQTT connection was forcibly closed by the remote host [' +rc +']')
     
     #def on_log(client, userdata, level, buf):
     #    print(msg.topic+" "+str(msg.payload))

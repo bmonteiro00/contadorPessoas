@@ -11,9 +11,13 @@ import datetime
 import threading
 import platform
 import logging
-import configparser
-from contextlib import suppress
+#from contextlib import suppress
 import json
+
+if sys.version_info[0] == 3:
+    import configparser
+else:
+    import ConfigParser 
 
 from uuid import getnode as get_mac
 from Contador_v1    import Contador
@@ -24,6 +28,8 @@ configFilename = "CamBus.ini"
 
 # Error values
 CAMBUS_INVALID_MQ_TYPE = -32
+
+LOG = logging.getLogger(__name__)
 
 class CamBus:
 
@@ -39,7 +45,7 @@ class CamBus:
         bData['BUS']['Status'] = 'shut down'
         self._mqtt.publish(self._topic, json.dumps(bData) )
         
-        # Salva configurações mudadas
+        # Salva configuracoes mudadas
         self.saveConfig()
         print ('CamBus[', self._PID, '] died')
 
@@ -47,7 +53,7 @@ class CamBus:
         self.frame = None
         
         ########################################################################################
-        # Dados básicos: sistema operacional, PID, e o MAC (para gerar um nome único no MQTT)
+        # Dados basicos: sistema operacional, PID, e o MAC (para gerar um nome unico no MQTT)
         self._OS = platform.system()
         self._PID = os.getpid()
         self._ID = hex(get_mac())
@@ -55,31 +61,32 @@ class CamBus:
         self.setLogger()
         self.readConfig()
         
-        self._sensor = CamSensors(self._logger, self._OS)
-        self._counter = Contador(self._logger)
-        self._mqtt = CamMQttClient(self._logger, self._OS, self._lastTimestamp)
-        self._subscribeTo = self._busConfig['MQTT']['SUBSCRIBE_TO']
-        self._topic =       self._busConfig['MQTT']['BASE_TOPIC'] +self._name +'/' + self._car
-        self._logger.info('CamBus successfully started')    
+        self._sensor = CamSensors(LOG, self._OS)
+        self._counter = Contador(LOG)
+        self._mqtt = CamMQttClient(LOG, self._OS, self._lastTimestamp)
+        self._subscribeTo = self._busConfig.get('MQTT','SUBSCRIBE_TO')
+        self._topic =       self._busConfig.get('MQTT','BASE_TOPIC') +self._name +'/' + self._car
+      
+        LOG.info('CamBus[%s] successfully started for Python %d.%d', self._OS, sys.version_info[0], sys.version_info[1])    
 
     def setLogger(self):
         ########################################################################################
         # Sistema de log: pega da variavel de ambiente LOGLEVEL
-            #self._logger.debug('debug message')
-            #self._logger.info('info message')
-            #self._logger.warn('warn message')
-            #self._logger.error('error message')
-            #self._logger.critical('critical message')
+            #LOG.debug('debug message')
+            #LOG.info('info message')
+            #LOG.warn('warn message')
+            #LOG.error('error message')
+            #LOG.critical('critical message')
 
         logging.basicConfig(level=logging.INFO)
-        self._logger = logging.getLogger(__name__)
+        #LOG = logging.getLogger(__name__)
         
         if os.getenv('LOGLEVEL') == 'ERROR':
-            self._logger.setLevel(logging.ERROR)        
+            LOG.setLevel(logging.ERROR)        
         elif os.getenv('LOGLEVEL') == 'DEBUG':
-            self._logger.setLevel(logging.DEBUG)        
+            LOG.setLevel(logging.DEBUG)        
         else:
-            self._logger.setLevel(logging.INFO)      
+            LOG.setLevel(logging.INFO)      
 
         # create a file handler
         handler = logging.FileHandler('CamBus.log')
@@ -89,10 +96,10 @@ class CamBus:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         # add the handlers to the logger
-        self._logger.addHandler(handler)
+        LOG.addHandler(handler)
 
     ########################################################################################
-    # Salva parâmetros atuais        
+    # Salva parametros atuais        
     def saveConfig(self):
         # Update timestamp
         ts = str(time.time() )
@@ -111,36 +118,41 @@ class CamBus:
         self._busConfig.write(cfgFile)
         cfgFile.close()
         
-    # Tenta ler, se não existir cria com o valor default passado como argumento
+    # Tenta ler, se nao existir cria com o valor default passado como argumento
     def configSetDefault(self, section, key, value):
         try:
-            self._busConfig[section][key]
+            self._busConfig.get(section,key)
 
         except:
-            with suppress(Exception):
-                self._busConfig.add_section(section)
+            self.addSectionNoException(self._busConfig, section)
             self._busConfig.set(section, key, value)
         
+    def addSectionNoException(self, config, section):
+        try:
+            config.add_section(section)
+        except:
+            pass
+        
     ########################################################################################
-    # Lê dados de configuração e último timestamp válido
+    # Le dados de configuracao e ultimo timestamp valido
     def readConfig(self):
-        self._busConfig = configparser.ConfigParser()
+        if sys.version_info[0] == 3:
+            self._busConfig = configparser.ConfigParser()
+        else:
+            self._busConfig = ConfigParser.ConfigParser()
+            
         self._busConfig.read(configFilename)
         cfgfile = open(configFilename, 'r')
         
-        # Sessões default
-        with suppress(Exception):
-            self._busConfig.add_section('MQTT')
-        with suppress(Exception):
-            self._busConfig.add_section('MQTT_eclipse')
-        with suppress(Exception):
-            self._busConfig.add_section('MQTT_local')
-        with suppress(Exception):
-            self._busConfig.add_section('MQTT_aws')
-        with suppress(Exception):
-            self._busConfig.add_section('BUS')
-        with suppress(Exception):
-            self._busConfig.add_section('SENSORS')
+        # Sessoes default
+        self.addSectionNoException(self._busConfig, 'MQTT')
+        self.addSectionNoException(self._busConfig, 'MQTT_eclipse')
+        self.addSectionNoException(self._busConfig, 'MQTT_local')
+        self.addSectionNoException(self._busConfig, 'MQTT_aws')
+        self.addSectionNoException(self._busConfig, 'BUS')
+        self.addSectionNoException(self._busConfig, 'SENSORS')
+    
+            
 
         self.configSetDefault('DEFAULT', 'Contador_class', 'Contador_v1')
         self.configSetDefault('DEFAULT', 'Sensors_class', 'Sensors_v1')
@@ -191,25 +203,28 @@ class CamBus:
         #Cria valores default falsos
         self._lastTimestamp = '???'
         
-        with suppress(Exception):
-            self._lastTimestamp = self._busConfig['DEFAULT']['LAST_TIMESTAMP'] 
+        try:
+            self._lastTimestamp = self._busConfig.get('DEFAULT','LAST_TIMESTAMP')
+        except:
+            pass
+         
         
-        # Lê os valores existentes para variáveis locais
-        self._name =  self._busConfig['BUS']['name']
-        self._car  =  self._busConfig['BUS']['car']
-        self._line =  self._busConfig['BUS']['line']
+        # Le os valores existentes para variaveis locais
+        self._name =  self._busConfig.get('BUS','name')
+        self._car  =  self._busConfig.get('BUS','car')
+        self._line =  self._busConfig.get('BUS','line')
 
-        self._mq =       self._busConfig['MQTT']['mq'] 
-        self._host =     self._busConfig['MQTT']['host'] 
-        self._port =     self._busConfig['MQTT']['port'] 
-        self._caPath =   self._busConfig['MQTT']['caPath']
-        self._certPath = self._busConfig['MQTT']['certPath']
-        self._keyPath =  self._busConfig['MQTT']['keyPath']
-        self._publishInterval = int(self._busConfig['MQTT']['publish_interval'] )
+        self._mq =       self._busConfig.get('MQTT','mq')
+        self._host =     self._busConfig.get('MQTT','host') 
+        self._port =     self._busConfig.get('MQTT','port') 
+        self._caPath =   self._busConfig.get('MQTT','caPath')
+        self._certPath = self._busConfig.get('MQTT','certPath')
+        self._keyPath =  self._busConfig.get('MQTT','keyPath')
+        self._publishInterval = int(self._busConfig.get('MQTT','publish_interval'))
 
         agora = str(datetime.datetime.now())
-        self._logger.info('Starting now: [%s]', agora)
-        self._logger.info('Last shutdown was: [%s]', self._lastTimestamp)
+        LOG.info('Starting now: [%s]', agora)
+        LOG.info('Last shutdown was: [%s]', self._lastTimestamp)
    
     def getJson(self):
         Data = {
@@ -234,7 +249,7 @@ class CamBus:
         if  self._mq == 'fake':
             self._mqtt.setupFake()
 
-        elif self._mq == 'mqtt'  or  self._busConfig['MQTT']['MQ'] == 'eclipse':
+        elif self._mq == 'mqtt'  or  self._busConfig.get('MQTT','MQ') == 'eclipse':
             self._mqtt.setup(self._host, self._port)
             self._mqtt.connect(self._topic, self._subscribeTo, bData)
             
@@ -247,16 +262,15 @@ class CamBus:
             self._mqtt.AWSConnect(self._caPath, self._certPath,  self._keyPath, self._topic, self._subscribeTo, bData )
 
         else:
-            self._logger.critical('[MQ] = ' +self._mq +', is an invalid option!')
+            LOG.critical('[MQ] = ' +self._mq +', is an invalid option!')
             sys.exit(CAMBUS_INVALID_MQ_TYPE)
 
     def runCamBus(self):
         print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
-        self._logger.info('OS=   ' +self._OS)
-        self._logger.info('PID=  ' +str(self._PID) ) 
-        self._logger.info('ID=   ' +self._ID)
-        self._logger.info('mq=   ' +self._mq)
-        self._logger.info('MainThread= ' +str(threading.current_thread()) )
+        LOG.info('PID=  ' +str(self._PID) ) 
+        LOG.info('ID=   ' +self._ID)
+        LOG.info('mq=   ' +self._mq)
+        LOG.info('MainThread= ' +str(threading.current_thread()) )
         
         self.connectMQTT()
         
