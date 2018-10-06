@@ -5,20 +5,20 @@ class Gps:
 
     def __init__(self):
         self.gps_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.gps_server.connect(("localhost", "2947"))
+        self.gps_server.connect(("localhost", 2947))
         self.gps_server.send('?WATCH={"enable": true,"json":true};')
-        self.gps.latitude = None
-        self.gps.longitude = None
-        self.gps.velocidade = None
+        self.latitude = None
+        self.longitude = None
+        self.velocidade = None
 
     def getlatitude(self):
-        return self.gps.latitude
+        return self.latitude
 
     def getlongitude(self):
-        return self.gps.longitude
+        return self.longitude
 
     def getvelocidade(self):
-        return self.gps.speed
+        return self.speed
 
     def capturaparametros(self):
 
@@ -28,15 +28,18 @@ class Gps:
                 json_list = json_response.split(',')
                 for pos in json_list:
                     if pos.find("lat") != -1:
-                        self.gps.latitude = pos
+                        self.latitude = pos
                     if pos.find("lon") != -1:
-                        self.gps.longitude = pos
+                        self.longitude = pos
                     if pos.find("speed") != -1:
-                        self.gps.velocidade = pos
+                        self.velocidade = pos
 
 
         time.sleep(3)
 
 if __name__ == '__main__':
     gps = Gps()
-    gps.printparametros()
+    gps.capturaparametros()
+    gps.getlatitude()
+    gps.getlongitude()
+    gps.getvelocidade()
