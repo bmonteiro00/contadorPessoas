@@ -18,7 +18,7 @@ class Gps:
         return self.longitude
 
     def getvelocidade(self):
-        return self.speed
+        return self.velocidade
 
     def capturaparametros(self):
 
