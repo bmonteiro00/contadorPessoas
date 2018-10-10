@@ -6,14 +6,16 @@
 
 import os
 import time
+import platform
 import datetime
+import logging
 #from contextlib import suppress
 import sys 
 #kkkimport RPi.GPIO as GPIO
 
 # Error values
 SENSOR_CANNOT_IMPORT_GPIO = -21
-
+SENSOR_UNKNOWN_SO = -22
 
 class CamSensors:
     def __del__(self):
@@ -22,11 +24,11 @@ class CamSensors:
             
         print ('Sensor[] died')
 
-    def __init__(self, logger, OS):
+    def __init__(self, logger, so):
         self.frame = None
        
         self.LOG = logger
-        self._OS = OS
+        self._OS = so
         
         # Tenta importar a biblioteca GPIO correta para o hardware
         try:
@@ -35,7 +37,7 @@ class CamSensors:
                 #self.GPIO = '{ fake}' 
                 pass
                 
-            elif self._OS == 'rasp':     # para a Raspberry PI
+            elif self._OS == 'raspberrypi':     # para a Raspberry PI
                 import RPi.GPIO as GPIO
                 
             elif self._OS == 'dragon?':  # Para a Dragon
@@ -46,7 +48,7 @@ class CamSensors:
             else:
                 # Do the default
                 self.LOG.critical('Unknown operational system [' +self._OS +']')
-                raise
+                sys.exit(SENSOR_UNKNOWN_SO)
             
         except RuntimeError:
             self.LOG.critical('Error importing GPIO for system [%s]!  This is probably because you need superuser privileges.  You can achieve this by using [sudo] to run your script', self.OS)
@@ -57,10 +59,18 @@ class CamSensors:
         # sucesso
         self.LOG.info('Sensors[%s] successfully loaded', self._OS)
 
+    # Return CPU temperature as a character string                               
+    def getRaspCPUTemperature(self):
+        res = os.popen('vcgencmd measure_temp').readline()
+        return (res.replace("temp=","").replace("'C\n",""))
+
+
     def getJson(self):
+        self.LOG.debug('getSensorValues(' +self._OS +')')
+        
         if self._OS == 'Windows':
             self._Temp += 1
-            self.LOG.debug('getSensorValues(' +self._OS +')')
+
             Data =  [
                         {
                             'name': 'Temp',
@@ -73,6 +83,24 @@ class CamSensors:
                             'value': self._Temp
                         }
                     ]
+                    
+        elif self._OS == 'raspberrypi':
+            Data = [
+                    {
+                        'name': 'Temp',
+                        'type': 'centigrade',
+                        'value':  self.getRaspCPUTemperature()
+                    } , 
+                    {
+                        'name': 'CO2',
+                        'type': 'ppm',
+                        'value': self._Temp
+                    }
+                ]
+        else:
+            # Do the default
+            self.LOG.critical('Unknown operational system [' +self._OS +']')
+            sys.exit(SENSOR_UNKNOWN_SO)
          
         #Data['GPS'] = 'bla'
         return Data
@@ -80,5 +108,13 @@ class CamSensors:
  
  
 if __name__ == '__main__':
-    CamSensors().getSensorValues()
+    LOG = logging.getLogger(__name__)
+    handler = logging.FileHandler('CamBus.log')
+    LOG.addHandler(handler)
+    
+    print(platform.system())
+    #try:
+    CamSensors(LOG).getSensorValues()
+    #except:
+    #    pass
      

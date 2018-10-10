@@ -27,7 +27,8 @@ from MqttClient_v1  import CamMQttClient
 configFilename = "CamBus.ini"
 
 # Error values
-CAMBUS_INVALID_MQ_TYPE = -32
+CAMBUS_INVALID_MQ_TYPE = -12
+CAMBUS_INVALID_SO = -13
 
 LOG = logging.getLogger(__name__)
 
@@ -49,18 +50,36 @@ class CamBus:
         self.saveConfig()
         print ('CamBus[', self._PID, '] died')
 
+    # Encontra o nome do sistema operacional (para pode carregar arquivos de hardware especificos)
+    def getOS (self):   
+        OS = platform.uname()
+        
+        if OS[0] == 'Windows':
+            return 'Windows'
+
+        elif OS[1] == 'raspberrypi':     # para a Raspberry PI
+            return 'raspberrypi'
+
+        elif OS[1] == 'dragon?':  # Para a Dragon
+            pass  # todo
+        
+        else:
+            # Do the default
+            LOG.critical('Unknown operational system [' +OS[0] +',' +OS[1] +']')
+            sys.exit(CAMBUS_INVALID_SO)
+
     def __init__(self):
         self.frame = None
         
         ########################################################################################
         # Dados basicos: sistema operacional, PID, e o MAC (para gerar um nome unico no MQTT)
-        self._OS = platform.system()
         self._PID = os.getpid()
         self._ID = hex(get_mac())
         
         self.setLogger()
         self.readConfig()
         
+        self._OS = self.getOS()
         self._sensor = CamSensors(LOG, self._OS)
         self._counter = Contador(LOG)
         self._mqtt = CamMQttClient(LOG, self._OS, self._lastTimestamp)
@@ -233,6 +252,8 @@ class CamBus:
                 'Line': self._line,
                 'Status': 'dummy',
                 'Last_timestamp': self._lastTimestamp,
+                'System': self._OS,
+                'ID': self._ID,
                 'PID': self._PID
                 }
         return Data
