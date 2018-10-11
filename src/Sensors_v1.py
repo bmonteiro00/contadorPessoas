@@ -11,7 +11,6 @@ import datetime
 import logging
 #from contextlib import suppress
 import sys 
-#kkkimport RPi.GPIO as GPIO
 
 # Error values
 SENSOR_CANNOT_IMPORT_GPIO = -21
@@ -38,7 +37,22 @@ class CamSensors:
                 pass
                 
             elif self._OS == 'raspberrypi':     # para a Raspberry PI
-                import RPi.GPIO as GPIO
+                import RPi.GPIO as gpio
+                
+                #Configuring GPIO 
+                gpio.setwarnings(False)
+                gpio.setmode(gpio.BOARD)
+                gpio.setup(38,gpio.OUT)  # Led vermelho
+                gpio.setup(40,gpio.OUT)  # Led azul
+                 
+                #Configuring GPIO as PWM (frequency 20 Hz)
+                self._pwmRed = gpio.PWM(38,20)
+                self._pwmBlue = gpio.PWM(40,20)
+
+                 
+                #Initializing PWM
+                self._pwmBlue.start(0)
+                self._pwmRed.start(0)
                 
             elif self._OS == 'dragon?':  # Para a Dragon
                 from GPIOLibrary import GPIOProcessor
@@ -59,6 +73,19 @@ class CamSensors:
         # sucesso
         self.LOG.info('Sensors[%s] successfully loaded', self._OS)
 
+    def blink(self, colour, delay):
+        if (self._OS == 'Windows') or (self._OS == 'vmlinux') :
+            print(colour)
+            
+        else:
+            if colour=='RED':
+                self._pwmRed.ChangeDutyCycle(x)
+                
+            elif colour=='BLUE':
+                self._pwmBlue.ChangeDutyCycle(x)
+                
+        time.sleep(delay)
+    
     # Return CPU temperature as a character string                               
     def getRaspCPUTemperature(self):
         res = os.popen('vcgencmd measure_temp').readline()

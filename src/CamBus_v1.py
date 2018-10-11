@@ -320,6 +320,7 @@ class CamBus:
             
             
             self._mqtt.publish(self._topic, json.dumps(bData) )
+            self._sensor.blink('BLUE', 1)
             
             self.loadFile()
         
