@@ -4,6 +4,7 @@
 #
 #
 
+import os
 import paho.mqtt.client as paho
 import socket
 import ssl
@@ -85,8 +86,8 @@ class CamMQttClient:
             sys.exit(MQTT_CONNECT_ERR)
             
         self.LOG.debug('self._mq.publish(' +topic +', ' +json.dumps(jSon) +', qos=0)')
-        self.doSubscribe(subscribe_to +'/command')
-        self.doSubscribe(subscribe_to +'/file')
+        self.doSubscribe(subscribe_to +'/command/#')
+        self.doSubscribe(subscribe_to +'/file/#')
         
         # Publica uma mensagem inicial, para anunciar que começou a enviar dados
         self._mq.publish(topic, json.dumps(jSon), qos=0)
@@ -114,7 +115,21 @@ class CamMQttClient:
         print('saiu daqui!')
 
     def onMessage(self, client, userdata, msg):
-        print(msg.topic +' [' +str(msg.payload) +']')
+        
+        Topic = str(msg.topic)
+       
+        # Recebeu um arquivo e tem que salvar
+        if Topic.find('file') > 1:
+            self._filename = os.path.basename(Topic)
+            self.LOG.info('Received a file: [' +self._filename +'] ')
+            fout = open(self._filename,"wb")
+            fout.write(msg.payload)
+            fout.close()
+            self.LOG.info('Saved file: [' +self._filename +']')
+            
+        else:
+            self.LOG.info('Received a command: [' +Topic +']= ' +str(msg.payload))
+
         
     def onDisconnect(self, client, userdata, rc):
         if rc != 0:

@@ -287,6 +287,11 @@ class CamBus:
             LOG.critical('[MQ] = ' +self._mq +', is an invalid option!')
             sys.exit(CAMBUS_INVALID_MQ_TYPE)
 
+    def loadFile(self):
+        if self._mqtt._filename is not '':
+            LOG.critical('Loading = [' +self._mqtt._filename +']')
+            self._mqtt._filename = ''
+                
     def runCamBus(self):
         print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
         LOG.info('PID=  ' +str(self._PID) ) 
@@ -315,6 +320,8 @@ class CamBus:
             
             
             self._mqtt.publish(self._topic, json.dumps(bData) )
+            
+            self.loadFile()
         
         if(self._countFlag):
             Contador().detectPeople()
