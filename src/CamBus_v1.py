@@ -54,7 +54,7 @@ class CamBus:
     def getOS (self):   
         OS = platform.uname()
         
-        if OS[0] == 'Windows':
+        if (OS[0] == 'Windows') or (OS[1] == 'vmlinux'):
             return 'Windows'
 
         elif OS[1] == 'raspberrypi':     # para a Raspberry PI

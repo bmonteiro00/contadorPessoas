@@ -32,7 +32,7 @@ class CamSensors:
         
         # Tenta importar a biblioteca GPIO correta para o hardware
         try:
-            if self._OS == 'Windows':
+            if (self._OS == 'Windows') or (self._OS == 'vmlinux') :
                 # Fake GPIO
                 #self.GPIO = '{ fake}' 
                 pass
