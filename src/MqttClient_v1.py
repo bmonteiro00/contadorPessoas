@@ -32,6 +32,7 @@ class CamMQttClient:
         self._connFlag = False
         self._host = ''
         self._port = ''
+        self._filename = ''
         self._fakeFlag = False
         
         self._mq = paho.Client()
