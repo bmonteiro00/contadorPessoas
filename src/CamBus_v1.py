@@ -84,7 +84,7 @@ class CamBus:
         self._counter = Contador(LOG)
         self._mqtt = CamMQttClient(LOG, self._OS, self._lastTimestamp)
         self._subscribeTo = self._busConfig.get('MQTT','SUBSCRIBE_TO')
-        self._topic =       self._busConfig.get('MQTT','BASE_TOPIC') +self._name +'/' + self._car
+        self._topic =       self._busConfig.get('MQTT','BASE_TOPIC') ### +self._name +'/' + self._car
       
         LOG.info('CamBus[%s] successfully started for Python %d.%d', self._OS, sys.version_info[0], sys.version_info[1])    
 
@@ -259,10 +259,11 @@ class CamBus:
         return Data
         
     def connectMQTT(self):
-        bData = {
-                'BUS':     True,
-                'COUNTER': 'off-line',
-                'SENSORS': 'off-line'                    
+        bData = { "state" : {
+                            'BUS':     True,
+                            'COUNTER': 'off-line',
+                            'SENSORS': 'off-line'                    
+                            }
                 }
         bData['BUS'] = self.getJson()
         bData['BUS']['Status'] = 'start up'
@@ -302,17 +303,17 @@ class CamBus:
         while True:
             # Loop principal do programa
             time.sleep( self._publishInterval )
-            bData = {
-                    'BUS': True,
-                    'COUNTER': True,
-                    'SENSORS': True                    
-                }
+            bData = { "state" : {
+                                }
+                    }
             
-            bData['SENSORS'] =       self._sensor.getJson()
-            bData['BUS'] =           self.getJson()
-            bData['BUS']['Status'] = 'running'
+            #bData['state']['SENSORS'] =       self._sensor.getJson()
+            bData['state']['BUS'] =           self.getJson()
+            #bData['state']['BUS']['Status'] = 'running'
             
-            bData['COUNTER'] = self._counter.getJson()
+            #bData['COUNTER'] = self._counter.getJson()
+            
+            
             self._mqtt.publish(self._topic, json.dumps(bData) )
         
         if(self._countFlag):
