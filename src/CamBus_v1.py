@@ -45,8 +45,10 @@ class CamBus:
         bData['BUS'] = self.getJson()
         bData['BUS']['Status'] = 'shut down'
         self._mqtt.publish(self._topic, json.dumps(bData) )
+        self._sensor.blink('BLUE', 1)
         
         # Salva configuracoes mudadas
+        self._lastShutdown = str(datetime.datetime.now())
         self.saveConfig()
         print ('CamBus[', self._PID, '] died')
 
@@ -82,7 +84,7 @@ class CamBus:
         self._OS = self.getOS()
         self._sensor = CamSensors(LOG, self._OS)
         self._counter = Contador(LOG)
-        self._mqtt = CamMQttClient(LOG, self._OS, self._lastTimestamp)
+        self._mqtt = CamMQttClient(LOG, self._OS, self._lastShutdown)
         self._subscribeTo = self._busConfig.get('MQTT','SUBSCRIBE_TO')
         self._topic =       self._busConfig.get('MQTT','BASE_TOPIC') ### +self._name +'/' + self._car
       
@@ -220,10 +222,10 @@ class CamBus:
         
        
         #Cria valores default falsos
-        self._lastTimestamp = '???'
+        self._lastShutdown = '???'
         
         try:
-            self._lastTimestamp = self._busConfig.get('DEFAULT','LAST_TIMESTAMP')
+            self._lastShutdown = self._busConfig.get('DEFAULT','LAST_SHUTDOWN')
         except:
             pass
          
@@ -243,7 +245,7 @@ class CamBus:
 
         agora = str(datetime.datetime.now())
         LOG.info('Starting now: [%s]', agora)
-        LOG.info('Last shutdown was: [%s]', self._lastTimestamp)
+        LOG.info('Last shutdown was: [%s]', self._lastShutdown)
    
     def getJson(self):
         Data = {
@@ -251,7 +253,7 @@ class CamBus:
                 'Car':  self._car,
                 'Line': self._line,
                 'Status': 'dummy',
-                'Last_timestamp': self._lastTimestamp,
+                'Last_timestamp': self._lastShutdown,
                 'System': self._OS,
                 'ID': self._ID,
                 'PID': self._PID
@@ -312,11 +314,10 @@ class CamBus:
                                 }
                     }
             
-            #bData['state']['SENSORS'] =       self._sensor.getJson()
+            bData['state']['SENSORS'] =       self._sensor.getJson()
             bData['state']['BUS'] =           self.getJson()
-            #bData['state']['BUS']['Status'] = 'running'
-            
-            #bData['COUNTER'] = self._counter.getJson()
+            bData['state']['BUS']['Status'] = 'running'
+            bData['state']['COUNTER'] =       self._counter.getJson()
             
             
             self._mqtt.publish(self._topic, json.dumps(bData) )

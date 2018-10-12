@@ -90,7 +90,7 @@ class CamMQttClient:
         self.doSubscribe(subscribe_to +'/command/#')
         self.doSubscribe(subscribe_to +'/file/#')
         
-        # Publica uma mensagem inicial, para anunciar que começou a enviar dados
+        # Publica uma mensagem inicial, para anunciar que comecou a enviar dados
         self._mq.publish(topic, json.dumps(jSon), qos=0)
     
     def AWSConnect(self, caPath, certPath, keyPath, topic, subscribeTo, jsonString):
@@ -105,15 +105,12 @@ class CamMQttClient:
         global _connFlag
         self._connFlag = True
 
-        print('entrei!')
         if rc==0:
             self.LOG.info('MQTT connected to [' +self._host +':' +self._port +']')
         else:
             self.LOG.error('MQTT error [' +rc +' when connecting to [' +self._host +':' +self._port +']')
             pass #todo 
             # 0: Connection successful 1: Connection refused - incorrect protocol version 2: Connection refused - invalid client identifier 3: Connection refused - server unavailable 4: Connection refused - bad username or password 5: Connection refused
-        
-        print('saiu daqui!')
 
     def onMessage(self, client, userdata, msg):
         
