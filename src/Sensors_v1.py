@@ -29,7 +29,6 @@ class RFIDReader:
     def __init__(self, logger, blink):
         self.LOG = logger
         self._blink = blink
-        import MFRC522   # For RFID
         
         # Roda dentro de uma thread
         T1 = threading.Thread(target=self.loop)
@@ -40,6 +39,8 @@ class RFIDReader:
          
         self.LOG.info('RFID= ' +str(threading.current_thread()) )
         try:
+            import MFRC522   # For RFID
+            
             rfid = MFRC522.MFRC522()  # starting 
          
             while True:
