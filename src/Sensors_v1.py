@@ -29,6 +29,7 @@ class RFIDReader:
     def __init__(self, logger, blink):
         self.LOG = logger
         self._blink = blink
+        import MFRC522   # For RFID
         
         # Roda dentro de uma thread
         T1 = threading.Thread(target=self.loop)
@@ -154,7 +155,6 @@ class CamSensors:
                 
             elif self._OS == 'raspberrypi':     # para a Raspberry PI
                 import RPi.GPIO as gpio
-                import MFRC522   # For RFID
                 
                 #Configuring GPIO 
                 gpio.setwarnings(False)
