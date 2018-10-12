@@ -12,7 +12,6 @@ import logging
 import datetime
 import platform
 import threading
-import MFRC522   # For RFID
 
 # Error values
 SENSOR_CANNOT_IMPORT_GPIO = -21
@@ -155,6 +154,7 @@ class CamSensors:
                 
             elif self._OS == 'raspberrypi':     # para a Raspberry PI
                 import RPi.GPIO as gpio
+                import MFRC522   # For RFID
                 
                 #Configuring GPIO 
                 gpio.setwarnings(False)
