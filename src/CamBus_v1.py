@@ -62,8 +62,8 @@ class CamBus:
         elif OS[1] == 'raspberrypi':     # para a Raspberry PI
             return 'raspberrypi'
 
-        elif OS[1] == 'dragon?':  # Para a Dragon
-            pass  # todo
+        elif OS[1] == 'linaro-alip':  # Para a Dragon
+            return 'linaro-alip'
         
         else:
             # Do the default

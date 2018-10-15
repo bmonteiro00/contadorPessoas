@@ -174,10 +174,11 @@ class CamSensors:
                 self._gps = GPS(logger)
                 self._rfid = RFIDReader(logger, self)
                 
-            elif self._OS == 'dragon?':  # Para a Dragon
+            elif self._OS == 'linaro-alip':  # Para a Dragon
                 from GPIOLibrary import GPIOProcessor
 
                 self.GPIO = GPIOProcessor()
+                self._gps = GPS(logger)
 
             else:
                 # Do the default
@@ -190,16 +191,27 @@ class CamSensors:
         
          # Default value 
         self._Temp = 23
+        
+        print('Cat= ' +self.cat('vai.txt'))
         # sucesso
         self.LOG.info('Sensors[%s] successfully loaded', self._OS)
 
+    def cat(self, filename):
+        try:
+            with open(filename) as f:
+                for line in f:
+                    return line
+        except IOError as e:
+            self.LOG.error('I/O error[%s]: %s',  filename, str(e.strerror))
+            return('I/O error!')
+            
     def blink(self, colour, delay):
         self.LOG.info(':blink(colour=' +colour +', delay=' +str(delay) +'):')
-        if (self._OS == 'Windows') or (self._OS == 'vmlinux') :
+        if (self._OS == 'Windows') or (self._OS == 'vmlinux') or (self._OS == 'linaro-alip') :
             print(colour)
             return
             
-        else:
+        elif self._OS == 'raspberrypi':
             if colour=='RED':
                 self._pwmRed.ChangeDutyCycle(1)
                 
@@ -258,6 +270,19 @@ class CamSensors:
                         'value': self._Temp
                     }
                 ]
+
+        elif self._OS == 'linaro-alip':
+            Data = [
+                   {
+                        'gps': self._gps.getJson() 
+                    } ,
+                    {
+                        'name': 'Temp',
+                        'type': 'centigrade',
+                        'value':  99
+                    }
+                   ]
+
         else:
             # Do the default
             self.LOG.critical('Unknown operational system [' +self._OS +']')
