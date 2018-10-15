@@ -192,7 +192,6 @@ class CamSensors:
          # Default value 
         self._Temp = 23
         
-        print('Cat= ' +self.cat('vai.txt'))
         # sucesso
         self.LOG.info('Sensors[%s] successfully loaded', self._OS)
 
@@ -260,7 +259,7 @@ class CamSensors:
                         'gps': self._gps.getJson() 
                     } ,
                     {
-                        'name': 'Temp',
+                        'name': 'CPUTemp',
                         'type': 'centigrade',
                         'value':  self.getRaspCPUTemperature()
                     } , 
@@ -277,9 +276,9 @@ class CamSensors:
                         'gps': self._gps.getJson() 
                     } ,
                     {
-                        'name': 'Temp',
+                        'name': 'CPUTemp',
                         'type': 'centigrade',
-                        'value':  99
+                        'value':  float(self.cat('/sys/class/thermal/thermal_zone0/temp')) / 1000.0
                     }
                    ]
 
