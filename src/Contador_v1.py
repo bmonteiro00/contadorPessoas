@@ -27,7 +27,15 @@ class Contador:
         self._model = 'Basic OpenCV'
         self.LOG.info('Contador[%s] successfully loaded', self._model)   
 
+    def getVersion(self):
+        return 'ContadorFake 1.0'
+
+    def stop(self):
+        self._mustRun = False
+
     def run(self):
+        self._mustRun = True
+        
         # Roda dentro de uma thread
         if(self._countFlag):
             self._model = 'Basic OpenCV'
@@ -51,7 +59,7 @@ class Contador:
         
     def detectPeopleSimulator(self):
         self.LOG.info('CounterThread= ' +str(threading.current_thread()) )
-        while(True):
+        while(self._mustRun):
             time.sleep( 2 )
             self._countUp = randint(0, 9)
             self._countDown = randint(0, 9)

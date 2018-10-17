@@ -22,7 +22,7 @@ SENSOR_RFID_ERROR =         -24
 TAGS = {
         '67:6F:B7:73:CC': 'Motorista Vinicius',
         'A9:4F:B5:DD:8E': 'Motorista Kleber',
-    }
+       }
 
 class RFIDReader:
     

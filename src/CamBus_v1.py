@@ -13,6 +13,7 @@ import platform
 import logging
 #from contextlib import suppress
 import json
+import imp
 
 if sys.version_info[0] == 3:
     import configparser
@@ -178,9 +179,6 @@ class CamBus:
         self.addSectionNoException(self._busConfig, 'MQTT_aws')
         self.addSectionNoException(self._busConfig, 'BUS')
         self.addSectionNoException(self._busConfig, 'SENSORS')
-    
-            
-
         self.configSetDefault('DEFAULT', 'Contador_class', 'Contador_v1')
         self.configSetDefault('DEFAULT', 'Sensors_class', 'Sensors_v1')
         
@@ -188,8 +186,8 @@ class CamBus:
         self.configSetDefault('MQTT', 'mq', 'aws')
         self.configSetDefault('MQTT', 'host', 'a3k400xgjmh5lk.iot.us-east-2.amazonaws.com')
         self.configSetDefault('MQTT', 'port', '8883')
-        self.configSetDefault('MQTT', 'base_topic', '/aws/')
-        self.configSetDefault('MQTT', 'subscribe_to', '/aws/command/#')
+        self.configSetDefault('MQTT', 'base_topic',   '$aws/things/Dobrowok/shadow/update')
+        self.configSetDefault('MQTT', 'subscribe_to', 'aws/command/#')
         
         self.configSetDefault('MQTT', 'clientId', 'Teste')
         self.configSetDefault('MQTT', 'thingName', 'Teste')
@@ -292,10 +290,28 @@ class CamBus:
             LOG.critical('[MQ] = ' +self._mq +', is an invalid option!')
             sys.exit(CAMBUS_INVALID_MQ_TYPE)
 
+    # Carrega um novo modeo (objeto) de um arquivo PY que chegou pelo MQtt
     def loadFile(self):
         if self._mqtt._filename is not '':
             LOG.critical('Loading = [' +self._mqtt._filename +']')
+            
+            mod_name,file_ext = os.path.splitext(self._mqtt._filename)
+
+            if file_ext.lower() == '.py':
+                py_mod = imp.load_source(mod_name, self._mqtt._filename)
+
+            elif file_ext.lower() == '.pyc':
+                py_mod = imp.load_compiled(mod_name, self._mqtt._filename)
+
+            if hasattr(py_mod, 'Contador'):
+                self._counter = getattr(py_mod, 'Contador')(LOG)
+
+            # Limpa
             self._mqtt._filename = ''
+            LOG.warning('Loaded version = [' +self._counter.getVersion() +']')
+            self._counter.stop()
+            self._counter.run()
+
                 
     def runCamBus(self):
         print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
@@ -308,7 +324,7 @@ class CamBus:
         
         # Infinite loops, in threads
         self._mqtt.run() 
-        self._counter.run()        
+        self._counter.run()
         
         while True:
             # Loop principal do programa
