@@ -205,7 +205,7 @@ class CamSensors:
             return('I/O error!')
             
     def blink(self, colour, delay):
-        self.LOG.info(':blink(colour=' +colour +', delay=' +str(delay) +'):')
+        self.LOG.debug(':blink(colour=' +colour +', delay=' +str(delay) +'):')
         if (self._OS == 'Windows') or (self._OS == 'vmlinux') or (self._OS == 'linaro-alip') :
             print(colour)
             return

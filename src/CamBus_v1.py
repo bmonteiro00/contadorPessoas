@@ -26,6 +26,15 @@ from MqttClient_v1  import CamMQttClient
 
 configFilename = "CamBus.ini"
 
+# Este eh o modelo basico que o AWS precisa para criar um 'shadow'
+AWSData = {"state":{"reported":{}}}
+# Para publicar, tem que ser no topico abaixo:
+#   $aws/things/Dobrowok/shadow/update
+
+# Este eh o comando para pegar o shadow com CURL
+#   curl --tlsv1.2 --cert ./e866e9eb47-certificate.pem.crt.txt --key ./e866e9eb47-private.pem.key --cacert ./aws-iot-rootCA.pem -X GET https://a3k400xgjmh5lk.iot.us-east-2.amazonaws.com:8443/things/Dobrowok/shadow
+
+
 # Error values
 CAMBUS_INVALID_MQ_TYPE = -12
 CAMBUS_INVALID_SO = -13
@@ -36,14 +45,11 @@ class CamBus:
 
     def __del__(self):
         #Publica mensagem indicando que caiu
-        bData = {
-            'BUS': True,
-            'COUNTER': 'off',
-            'SENSORS': 'off'                    
-        }
-        
-        bData['BUS'] = self.getJson()
-        bData['BUS']['Status'] = 'shut down'
+        bData = AWSData
+        bData['state']['reported']['BUS'] =           self.getJson()
+        bData['state']['reported']['BUS']['Status'] = 'shut down'
+        bData['state']['reported']['SENSORS'] =       'off-line'
+        bData['state']['reported']['COUNTER'] =       'off-line'
         self._mqtt.publish(self._topic, json.dumps(bData) )
         self._sensor.blink('BLUE', 1)
         
@@ -255,21 +261,18 @@ class CamBus:
                 'Status': 'dummy',
                 'Last_timestamp': self._lastShutdown,
                 'System': self._OS,
-                'ID': self._ID,
-                'PID': self._PID
+                'ID': self._ID
                 }
         return Data
         
     def connectMQTT(self):
-        bData = { "state" : {
-                            'BUS':     True,
-                            'COUNTER': 'off-line',
-                            'SENSORS': 'off-line'                    
-                            }
-                }
-        bData['BUS'] = self.getJson()
-        bData['BUS']['Status'] = 'start up'
-            
+    
+        bData = AWSData
+        bData['state']['reported']['BUS'] =           self.getJson()
+        bData['state']['reported']['BUS']['Status'] = 'start up'
+        bData['state']['reported']['SENSORS'] =       'off-line'
+        bData['state']['reported']['COUNTER'] =       'off-line'
+
         if  self._mq == 'fake':
             self._mqtt.setupFake()
 
@@ -309,15 +312,18 @@ class CamBus:
         
         while True:
             # Loop principal do programa
-            time.sleep( self._publishInterval )
-            bData = { "state" : {
-                                }
-                    }
+            try:
+                time.sleep( self._publishInterval )
+            except:
+                LOG.info('Finishing due to CTR+C')
+                sys.exit(0)
             
-            bData['state']['SENSORS'] =       self._sensor.getJson()
-            bData['state']['BUS'] =           self.getJson()
-            bData['state']['BUS']['Status'] = 'running'
-            bData['state']['COUNTER'] =       self._counter.getJson()
+            bData = AWSData
+            
+            bData['state']['reported']['BUS'] =           self.getJson()
+            bData['state']['reported']['BUS']['Status'] = 'running'
+            bData['state']['reported']['SENSORS'] =       self._sensor.getJson()
+            bData['state']['reported']['COUNTER'] =       self._counter.getJson()
             
             
             self._mqtt.publish(self._topic, json.dumps(bData) )
