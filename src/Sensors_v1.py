@@ -143,16 +143,16 @@ class GPS:
         if (self._gpsReport == ''):
             Data = 'not available'
         
-        elif hasattr(self._gpsReport, 'lon'):
-            print(self._gpsReport)
-            Data = {
-                        'lon':   self._gpsReport.lon, 
-                        'lat':   self._gpsReport.lat,
-                        'alt':   self._gpsReport.alt,
-                        'speed': self._gpsReport.speed
-                    }        
         else:
-            Data = 'not available'           
+            try:
+                Data = {
+                            'lon':   self._gpsReport.lon, 
+                            'lat':   self._gpsReport.lat,
+                            'alt':   self._gpsReport.alt,
+                            'speed': self._gpsReport.speed
+                        }        
+            except:
+                Data = 'error getting values'           
 
         return Data
     
