@@ -20,7 +20,7 @@ MQTT_PORT_EMPTY = -32
 MQTT_CONNECT_ERR = -33
 
 
-class CamMQttClient:
+class MQttClient:
     def __del__(self):
         print ('MQtt client[] died')
 

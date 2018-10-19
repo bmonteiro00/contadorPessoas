@@ -12,6 +12,7 @@ import logging
 import datetime
 import platform
 import threading
+import subprocess
 
 # Error values
 SENSOR_CANNOT_IMPORT_GPIO = -21
@@ -74,21 +75,39 @@ class RFIDReader:
 
     
 class GPS:
-    def __init__(self, logger):
+    def __init__(self, logger, OS):
         self.LOG = logger
+        self._OS = OS
         self._gpsReport = ''
         
         # Listen on port 2947 (gpsd) of localhost
-        try:
-            self._session = gps.gps("localhost", "2947")
-            self._session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
-        except Exception as e:
-            self.LOG.critical('GPS initialization error [' +str(e) +']')
-            
-            if 'Cannot assign requested address' in str(e):
-                print('Servico down. Use: \n sudo gpsd /dev/ttyS0 -F /var/run/gpsd.sock  # Liga o deamon')
-            sys.exit(SENSOR_GPS_ERROR)
+        for i in range(0,3):   # permite retry de 4 vezes em caso de erro de GPS
 
+            try:
+                self._session = gps.gps("localhost", "2947")
+                self._session.stream(gps.WATCH_ENABLE | gps.WATCH_NEWSTYLE)
+                
+            except Exception as e:              
+                if 'Cannot assign requested address' in str(e):
+                    # Consigo recuperar, ligando o GPS
+                    self.LOG.warning('GPS initialization error [' +str(e) +']. Will try to start it...')
+                    if self._OS == 'raspberrypi':     # para a Raspberry PI
+                        return_code = subprocess.call("sudo gpsd /dev/ttyS0 -F /var/run/gpsd.sock  # Liga o deamon", shell=True) 
+                        
+                    continue
+                    
+                else:
+                    self.LOG.critical('GPS initialization final error [' +str(e) +']')
+                    sys.exit(SENSOR_GPS_ERROR)
+            
+            break  # Se deu tudo erto, ja sai
+            
+        if(i >= 3):
+            # nao deu certo mesmo! sai com erro
+            self.LOG.critical('GPS initialization error')
+            print('Servico down. Use: \n sudo gpsd /dev/ttyS0 -F /var/run/gpsd.sock  # Liga o deamon')
+            sys.exit(SENSOR_GPS_ERROR)
+              
         # Roda dentro de uma thread
         T1 = threading.Thread(target=self.loop)
         T1.daemon = True    # Permite CTR+C parar o progama!
@@ -106,6 +125,7 @@ class GPS:
                 if report['class'] == 'TPV':
                     if hasattr(report, 'time'):
                         self._gpsReport = report
+                        #print(self._gpsReport )
                         #print('lon=' +str(report.lon) +'; lat=' +str(report.lat) )
                         
             except KeyError:
@@ -120,21 +140,24 @@ class GPS:
                 sys.exit(SENSOR_GPS_ERROR)
     
     def getJson(self):
-        if self._gpsReport == '':
+        if (self._gpsReport == ''):
             Data = 'not available'
         
-        else:
+        elif hasattr(self._gpsReport, 'lon'):
+            print(self._gpsReport)
             Data = {
                         'lon':   self._gpsReport.lon, 
                         'lat':   self._gpsReport.lat,
                         'alt':   self._gpsReport.alt,
                         'speed': self._gpsReport.speed
-                    }
+                    }        
+        else:
+            Data = 'not available'           
 
         return Data
     
 
-class CamSensors:
+class Sensors:
     def __del__(self):
         if hasattr(self, 'GPIO'):
             self.GPIO.cleanup()
@@ -171,7 +194,7 @@ class CamSensors:
                 self._pwmBlue.start(0)
                 self._pwmRed.start(0)
                 
-                self._gps = GPS(logger)
+                self._gps = GPS(logger, self._OS)
                 self._rfid = RFIDReader(logger, self)
                 
             elif self._OS == 'linaro-alip':  # Para a Dragon
@@ -299,7 +322,7 @@ if __name__ == '__main__':
     
     print(platform.system())
     #try:
-    CamSensors(LOG).getSensorValues()
+    Sensors(LOG).getSensorValues()
     #except:
     #    pass
      

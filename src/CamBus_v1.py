@@ -22,8 +22,8 @@ else:
 
 from uuid import getnode as get_mac
 from Contador_v1    import Contador
-from Sensors_v1     import CamSensors
-from MqttClient_v1  import CamMQttClient
+from Sensors_v1     import Sensors
+from MqttClient_v1  import MQttClient
 
 configFilename = "CamBus.ini"
 
@@ -89,9 +89,9 @@ class CamBus:
         self.readConfig()
         
         self._OS = self.getOS()
-        self._sensor = CamSensors(LOG, self._OS)
+        self._sensor = Sensors(LOG, self._OS)
         self._counter = Contador(LOG)
-        self._mqtt = CamMQttClient(LOG, self._OS, self._lastShutdown)
+        self._mqtt = MQttClient(LOG, self._OS, self._lastShutdown)
         self._subscribeTo = self._busConfig.get('MQTT','SUBSCRIBE_TO')
         self._topic =       self._busConfig.get('MQTT','BASE_TOPIC') ### +self._name +'/' + self._car
       
