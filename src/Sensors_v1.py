@@ -27,9 +27,11 @@ TAGS = {
 
 class RFIDReader:
     
-    def __init__(self, logger, blink):
+    def __init__(self, logger, blink, OS):
         self.LOG = logger
         self._blink = blink
+        self._OS = OS
+        
         
         # Roda dentro de uma thread
         T1 = threading.Thread(target=self.loop)
@@ -39,39 +41,40 @@ class RFIDReader:
     def loop(self):
          
         self.LOG.info('RFID= ' +str(threading.current_thread()) )
-        try:
-            import MFRC522   # For RFID
-            
-            rfid = MFRC522.MFRC522()  # starting 
-         
-            while True:
-                # is there a tag around?
-                status, tag_type = rfid.MFRC522_Request(rfid.PICC_REQIDL)
-         
-                if status == rfid.MI_OK:
-         
-                    # read the UID
-                    status, uid = rfid.MFRC522_Anticoll()
-         
-                    if status == rfid.MI_OK:
-                        uid = ':'.join(['%X' % x for x in uid])
-                        self.LOG.info('UID= ' +uid )
-         
-                        # Verifiy identity
-                        if uid in TAGS:
-                            self.LOG.info('Benvindo ' +TAGS[uid] )
-                            self._blink.blink('PURPLE', 2)
-
-                        else:
-                            self.LOG.warn('Tag nao reconhecido! [' +str(uid) +']' )
-                            self._blink.blink('RED', 2)
-        
-                time.sleep(.5)
+        if self._OS == 'raspberrypi':
+            try:
+                import MFRC522   # For RFID
                 
-        except KeyboardInterrupt:
-            GPIO.cleanup()
-            self.LOG.critical('RFID  exception')
-            sys.exit(SENSOR_RFID_ERROR)
+                rfid = MFRC522.MFRC522()  # starting 
+             
+                while True:
+                    # is there a tag around?
+                    status, tag_type = rfid.MFRC522_Request(rfid.PICC_REQIDL)
+             
+                    if status == rfid.MI_OK:
+             
+                        # read the UID
+                        status, uid = rfid.MFRC522_Anticoll()
+             
+                        if status == rfid.MI_OK:
+                            uid = ':'.join(['%X' % x for x in uid])
+                            self.LOG.info('UID= ' +uid )
+             
+                            # Verifiy identity
+                            if uid in TAGS:
+                                self.LOG.info('Benvindo ' +TAGS[uid] )
+                                self._blink.blink('PURPLE', 2)
+
+                            else:
+                                self.LOG.warn('Tag nao reconhecido! [' +str(uid) +']' )
+                                self._blink.blink('RED', 2)
+            
+                    time.sleep(.5)
+                    
+            except KeyboardInterrupt:
+                GPIO.cleanup()
+                self.LOG.critical('RFID  exception')
+                sys.exit(SENSOR_RFID_ERROR)
 
     
 class GPS:
@@ -195,13 +198,14 @@ class Sensors:
                 self._pwmRed.start(0)
                 
                 self._gps = GPS(logger, self._OS)
-                self._rfid = RFIDReader(logger, self)
+                self._rfid = RFIDReader(logger, self, self._OS)
                 
             elif self._OS == 'linaro-alip':  # Para a Dragon
                 from GPIOLibrary import GPIOProcessor
 
                 self.GPIO = GPIOProcessor()
-                self._gps = GPS(logger)
+                self._gps = GPS(logger, self._OS)
+                self._rfid = RFIDReader(logger, self, self._OS)
 
             else:
                 # Do the default
