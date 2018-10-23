@@ -14,6 +14,9 @@ import logging
 #from contextlib import suppress
 import json
 import imp
+import urllib
+import httplib
+
 
 if sys.version_info[0] == 3:
     import configparser
@@ -52,6 +55,7 @@ class CamBus:
         bData['state']['reported']['SENSORS'] =       'off-line'
         bData['state']['reported']['COUNTER'] =       'off-line'
         self._mqtt.publish(self._topic, json.dumps(bData) )
+        self.publishDweet(json.dumps(bData) )
         self._sensor.blink('BLUE', 1)
         
         # Salva configuracoes mudadas
@@ -312,7 +316,32 @@ class CamBus:
             self._counter.stop()
             self._counter.run()
 
-                
+    def publishDweet(self, json_string):
+        '''
+        try:
+            import ssl
+        except ImportError:
+            print "error: no ssl support"
+        ''' 
+        hdr = {"content-type": "application/json"}
+
+        try:
+            conn = httplib.HTTPConnection('dweet.io')
+            conn.request('POST', '/dweet/for/Dobrowok', json_string, hdr)
+            response = conn.getresponse()
+            #r2 = response.read() # same as r.text in 3.x
+            if(response.status != 200):
+                LOG.error('Dweet error: [%d] %s', response.status, response.reason)
+            
+            conn.close()
+            
+        except Exception as inst:
+            LOG.error('Dweet error: %s', inst)
+            conn.close()
+        
+        except KeyboardInterrupt:
+            raise
+       
     def runCamBus(self):
         print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
         LOG.info('PID=  ' +str(self._PID) ) 
@@ -322,10 +351,18 @@ class CamBus:
         
         self.connectMQTT()
         
+        cData = AWSData
+        cData['state']['reported']['BUS'] =           self.getJson()
+        cData['state']['reported']['BUS']['Status'] = 'running'
+        cData['state']['reported']['SENSORS'] =       self._sensor.getJson()
+        cData['state']['reported']['COUNTER'] =       self._counter.getJson()
+        
+        self.publishDweet(json.dumps(cData) )
+
         # Infinite loops, in threads
         self._mqtt.run() 
         self._counter.run()
-        
+       
         while True:
             # Loop principal do programa
             try:
@@ -343,6 +380,7 @@ class CamBus:
             
             
             self._mqtt.publish(self._topic, json.dumps(bData) )
+            self.publishDweet(json.dumps(bData) )
             self._sensor.blink('BLUE', 1)
             
             self.loadFile()

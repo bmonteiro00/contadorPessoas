@@ -5,7 +5,6 @@
 #
 
 import os
-import gps
 import sys 
 import time
 import logging
@@ -79,6 +78,8 @@ class RFIDReader:
     
 class GPS:
     def __init__(self, logger, OS):
+        import gps
+
         self.LOG = logger
         self._OS = OS
         self._gpsReport = ''
