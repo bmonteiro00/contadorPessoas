@@ -4,19 +4,77 @@
 #
 #
 
+import os
+import sys
+import time
+import threading
+import logging
 import numpy as np
 import cv2
+sys.path.insert(0, '../../') # Para poder importar o 'Pessoa' que esta 2 diretorios acima
+sys.path.insert(0, './') # Para poder importar o 'Pessoa' que esta 2 diretorios abaixo
 import Pessoa
 import time
 from matplotlib import pyplot as plt
 import math
 import decimal
-import requests
-
+from random import randint
 
 class Contador:
 
-    def __init__(self):
+    def __init__(self, logger):
+        self.id = os.getpid()
+        self.frame = None
+        self._countFlag = os.getenv('COUNT')
+        self.LOG = logger
+        self.LOG.info('countFlag= ' +str(self._countFlag) )
+        
+        self._countUp = 0
+        self._countDown = 0
+        self._model = 'Naive Trained'
+        self.LOG.info('Contador[%s] successfully loaded', self._model)
+        
+    def getVersion(self):
+        return 'ContadorFake 1.0'
+
+    def stop(self):
+        self._mustRun = False
+
+    def run(self):
+        self._mustRun = True
+        
+        # Roda dentro de uma thread
+        if(self._countFlag):
+            T1 = threading.Thread(target=self.detectPeople)
+            T1.daemon = True    # Permite CTR+C parar o progama!
+            T1.start()
+        else:
+            self._model = 'dummy'
+            T2 = threading.Thread(target=self.detectPeopleSimulator)
+            T2.daemon = True
+            T2.start()
+        
+    def getJson(self):
+        Data =  {
+                    'count_up':   self._countUp,
+                    'count_down': self._countDown,
+                    'model':      self._model
+                }
+
+        return Data
+        
+    def detectPeopleSimulator(self):
+        self.LOG.info('CounterThread= ' +str(threading.current_thread()) )
+        while(self._mustRun):
+            time.sleep( 2 )
+            self._countUp = randint(0, 9)
+            self._countDown = randint(0, 9)
+        
+    def detectPeople(self):
+
+        #Contadore de entrada e saida
+        self._countUp = 0
+        self._countDown = 0
 
         self.frame = None
         # Fonte de video
@@ -27,7 +85,7 @@ class Contador:
         self.w = self.cap.get(3)
         self.h = self.cap.get(4)
 
-        #Linhas de Entrada/Saída
+        #Linhas de Entrada/Saida
         self.line_up = int(2*(self.h/4))    #deve-se adaptar de acordo com as caracteristicas da camera
         self.line_down = int(2*(self.h/4))  #deve-se adaptar de acordo com as caracteristicas da camera
         #self.line_up = int(2.25 * (self.h / 6))
@@ -36,14 +94,16 @@ class Contador:
         self.up_limit = int(1*(self.h/6))
         self.down_limit = int(5*(self.h/6))
 
-        # Contadore de entrada e saída
+        # Contadore de entrada e saida
         self.cnt_up = 0
         self.cnt_down = 0
 
-    def detectPeople(self):
-
         svm = cv2.ml.NormalBayesClassifier_create()
-        svm = svm.load('svm_data1.dat')
+        try:
+            svm = svm.load('ml/naiveB/svm_data1.dat')
+        except:
+            sys.path.insert(1, './ml/naiveB') # Para poder importar o 'Pessoa' que esta 2 diretorios acima
+            svm = svm.load('svm_data1.dat')
 
         frameArea = self.h*self.w
         print("Area do Frame:", frameArea)
@@ -64,7 +124,7 @@ class Contador:
         kernelCl = np.ones((11,11),np.uint8)
         kernelCl2 = np.ones((8, 8), np.uint8)
 
-        #Inicialização de variaveis Globais
+        #Inicializacao de variaveis Globais
         font = cv2.FONT_HERSHEY_SIMPLEX
         pessoas = []
         dictEntrada = {000: 000}
@@ -79,11 +139,11 @@ class Contador:
             for pessoa in pessoas:
                 pessoa.age_one()
 
-            #Aplica subtração de fundo
+            #Aplica subtracao de fundo
             fgmask = fgbg.apply(frame)
             fgmask2 = fgbg.apply(frame)
 
-            #Binarização para eliminar sombras (color gris)
+            #Binarizacao para eliminar sombras (color gris)
             try:
 
                 fgmask = cv2.GaussianBlur(fgmask, (3, 3), 0)
@@ -91,10 +151,10 @@ class Contador:
 
                 ret, imBin = cv2.threshold(fgmask, 128, 255, cv2.THRESH_BINARY)
                 ret, imBin2 = cv2.threshold(fgmask2, 128, 255, cv2.THRESH_BINARY)
-                #Opening (erode->dilate) para remover o ruído.
+                #Opening (erode->dilate) para remover o ruido.
                 mask = cv2.morphologyEx(imBin, cv2.MORPH_OPEN, kernelOp3)
                 mask2 = cv2.morphologyEx(imBin2, cv2.MORPH_OPEN, kernelOp3)
-                #Closing (dilate -> erode) para juntar regiões brancas.
+                #Closing (dilate -> erode) para juntar regioes brancas.
                 mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernelCl2)
                 mask2 = cv2.morphologyEx(mask2, cv2.MORPH_CLOSE, kernelCl2)
             except:
@@ -123,14 +183,14 @@ class Contador:
 
                         for pessoa in pessoas:
                             if abs(cx - pessoa.getX()) <= w and abs(cy - pessoa.getY()) <= h:
-                                # O objeto está perto de um que já foi detectado anteriormente
+                                # O objeto esta perto de um que ja foi detectado anteriormente
                                 new = False
                                 pessoa.updateCoords(cx, cy)   #atualizar coordenadas no objeto e reseta a idade
                                 if pessoa.deslocaCima(self.line_down, self.line_up) and (str(predict) == "[[1]]" ):
                                     if dictEntrada.get(pessoa.getId()) != pessoa.getId():
                                         self.cnt_up += 1;
                                         print("-------------------------------------------------------------------------------------------------------")
-                                        print("ID: ", pessoa.getId(), 'Entrou às', time.strftime("%c"))
+                                        print("ID: ", pessoa.getId(), 'Entrou as', time.strftime("%c"))
                                         print("Area objeto: " + str(area))
                                         print("Perimetro: ", peri)
                                         print("Shape da pessoa: ", shape[0])
@@ -142,7 +202,7 @@ class Contador:
                                     if dictSaida.get(pessoa.getId()) != pessoa.getId():
                                         self.cnt_down += 1;
                                         print("-------------------------------------------------------------------------------------------------------")
-                                        print("ID: ", pessoa.getId(), 'Saiu às', time.strftime("%c"))
+                                        print("ID: ", pessoa.getId(), 'Saiu as', time.strftime("%c"))
                                         print("Area objeto: " + str(area))
                                         print("Perimetro: ", peri)
                                         print("Shape da pessoa: ", shape[0])
@@ -177,7 +237,7 @@ class Contador:
             #END for cnt in contours0
 
             #########################
-            # DESENHAR TRAJETÓRIAS  #
+            # DESENHAR TRAJETORIAS  #
             #########################
             for pessoa in pessoas:
                 if len(pessoa.getTracks()) >= 2:
@@ -195,7 +255,7 @@ class Contador:
             cv2.imshow('Frame', frame)
             cv2.imshow('Debug', mask)
 
-            #preisonar ESC para sair
+            #pressionar ESC para sair
             k = cv2.waitKey(30) & 0xff
             if k == 27:
                 break
@@ -260,5 +320,6 @@ class Contador:
 
 
 if __name__ == '__main__':
-    c = Contador()
+    LOG = logging.getLogger(__name__)
+    c = Contador(LOG)
     c.detectPeople()

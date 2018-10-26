@@ -31,7 +31,7 @@ class Contador:
         #svm.setC(2.67)
         #svm.setGamma(5.383)
 
-        #Contadore de entrada e saída
+        #Contadore de entrada e saida
         cnt_up = 0
         cnt_down = 0
 
@@ -58,7 +58,7 @@ class Contador:
         areaTH = frameArea/225
         print ('Area Threshold', areaTH) # Area de contorno usada para detectar uma pessoa
 
-        #Linhas de Entrada/Saída
+        #Linhas de Entrada/Saida
 
         line_up = int(2.25*(h/6))
         line_down   = int(3.75*(h/6))
@@ -107,7 +107,7 @@ class Contador:
         kernelCl = np.ones((11,11),np.uint8)
         kernelCl2 = np.ones((8, 8), np.uint8)
 
-        #Inicialização de variaveis Globais
+        #Inicializacao de variaveis Globais
         font = cv2.FONT_HERSHEY_SIMPLEX
         pessoas = []
         max_p_age = 5
@@ -115,7 +115,7 @@ class Contador:
 
         while(cap.isOpened()):
             ##for image in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-            #Lê uma imagem de uma fonte de video
+            #Le uma imagem de uma fonte de video
 
             ret, frame = cap.read()
             ## frame = image.array
@@ -126,11 +126,11 @@ class Contador:
             #   PRE-PROCESSAMENTO   #
             #########################
 
-            #Aplica subtração de fundo
+            #Aplica subtracao de fundo
             fgmask = fgbg.apply(frame)
             fgmask2 = fgbg.apply(frame)
 
-            #Binarização para eliminar sombras (color gris)
+            #Binarizacao para eliminar sombras (color gris)
             try:
 
                 fgmask = cv2.GaussianBlur(fgmask, (3, 3), 0)
@@ -139,11 +139,11 @@ class Contador:
                 ret,imBin= cv2.threshold(fgmask,128,255,cv2.THRESH_BINARY)
                 ret,imBin2 = cv2.threshold(fgmask2,128,255,cv2.THRESH_BINARY)
 
-                #Opening (erode->dilate) para remover o ruído.
+                #Opening (erode->dilate) para remover o ruido.
                 mask = cv2.morphologyEx(imBin, cv2.MORPH_OPEN, kernelOp3)
                 mask2 = cv2.morphologyEx(imBin2, cv2.MORPH_OPEN, kernelOp3)
 
-                #Closing (dilate -> erode) para juntar regiões brancas.
+                #Closing (dilate -> erode) para juntar regioes brancas.
                 mask =  cv2.morphologyEx(mask , cv2.MORPH_CLOSE, kernelCl2)
                 mask2 = cv2.morphologyEx(mask2, cv2.MORPH_CLOSE, kernelCl2)
             except:
@@ -234,7 +234,7 @@ class Contador:
                     #   RASTREAMENTO    #
                     #####################
 
-                    #Falta agregar condições para multiplas pessoas, saídas e entradas da tela
+                    #Falta agregar condicoes para multiplas pessoas, saidas e entradas da tela
 
                     #M = cv2.moments(cnt)
                     #print("Antes dos filtros: ", M)
@@ -259,13 +259,13 @@ class Contador:
                         #print("Shape de nao pessoa: ", cv2.HuMoments(M).flatten())
                         for pessoa in pessoas:
                             if abs(cx - pessoa.getX()) <= w and abs(cy - pessoa.getY()) <= h:
-                                # O objeto está perto de um que já foi detectado anteriormente
+                                # O objeto esta perto de um que ja foi detectado anteriormente
                                 new = False
                                 pessoa.updateCoords(cx,cy)   #atualizar coordenadas no objeto e reseta a idade
                                 if pessoa.deslocaCima(line_down,line_up) == True: #  and shape[0] < 0.30:# and dist < 170 and dist > 70 : #and (pessoa.getOffset() - time.time() < -0.95):
-                                    print("Diferença de tempo: ", (pessoa.getOffset() - time.time()))
+                                    print("Diferenca de tempo: ", (pessoa.getOffset() - time.time()))
                                     cnt_up += 1;
-                                    print ("ID: ",pessoa.getId(),'Entrou às',time.strftime("%c"))
+                                    print ("ID: ",pessoa.getId(),'Entrou as',time.strftime("%c"))
                                     print("Area objeto: " + str(area))
                                     print("Distancia do centroide da pessoa: ", dist)
                                     print(M)
@@ -282,9 +282,9 @@ class Contador:
                                     #print("Training data ...... ")
                                     #print(trainingData)
                                 elif pessoa.deslocaBaixo(line_down,line_up) == True : # and dist < 170 and dist > 70: # and (pessoa.getOffset() - time.time() < -0.95):
-                                    print("Diferença de tempo: ", (pessoa.getOffset() - time.time()))
+                                    print("Diferenca de tempo: ", (pessoa.getOffset() - time.time()))
                                     cnt_down += 1;
-                                    print ("ID: ",pessoa.getId(),'Saiu às',time.strftime("%c"))
+                                    print ("ID: ",pessoa.getId(),'Saiu as',time.strftime("%c"))
                                     print("Area objeto: " + str(area))
                                     print("Distancia do centroide da pessoa: ", dist)
                                     print(M)
@@ -325,7 +325,7 @@ class Contador:
             #END for cnt in contours0
 
             #########################
-            # DESENHAR TRAJETÓRIAS  #
+            # DESENHAR TRAJETORIAS  #
             #########################
             for pessoa in pessoas:
                 if len(pessoa.getTracks()) >= 2:

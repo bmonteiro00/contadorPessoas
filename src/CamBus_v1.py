@@ -4,6 +4,9 @@
 #
 #
 
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
+
 import os
 import sys
 import time
@@ -15,12 +18,13 @@ import logging
 import json
 import imp
 import urllib
-import httplib
 
-
+print('Python Version=' +sys.version)
 if sys.version_info[0] == 3:
+    import http.client 
     import configparser
 else:
+    import httplib
     import ConfigParser 
 
 from uuid import getnode as get_mac
@@ -94,7 +98,12 @@ class CamBus:
         
         self._OS = self.getOS()
         self._sensor = Sensors(LOG, self._OS)
-        self._counter = Contador(LOG)
+        
+        py_mod = imp.load_source('Contador', self._busConfig.get('DEFAULT','contador_class'))
+
+        if hasattr(py_mod, 'Contador'):
+                self._counter = getattr(py_mod, 'Contador')(LOG)
+
         self._mqtt = MQttClient(LOG, self._OS, self._lastShutdown)
         self._subscribeTo = self._busConfig.get('MQTT','SUBSCRIBE_TO')
         self._topic =       self._busConfig.get('MQTT','BASE_TOPIC') ### +self._name +'/' + self._car
@@ -326,14 +335,20 @@ class CamBus:
         hdr = {"content-type": "application/json"}
 
         try:
-            conn = httplib.HTTPConnection('dweet.io')
+            if sys.version_info[0] == 3:
+                #import http.client 
+                conn = http.client.HTTPSConnection('dweet.io')
+            else:
+                conn = httplib.HTTPConnection('dweet.io')
+
             conn.request('POST', '/dweet/for/Dobrowok', json_string, hdr)
             response = conn.getresponse()
             #r2 = response.read() # same as r.text in 3.x
             if(response.status != 200):
                 LOG.error('Dweet error: [%d] %s', response.status, response.reason)
-            
+                
             conn.close()
+            LOG.info('publishDweet(dweet.io, ' +json_string[0:35] +'  ...})')
             
         except Exception as inst:
             LOG.error('Dweet error: %s', inst)
@@ -343,7 +358,7 @@ class CamBus:
             raise
        
     def runCamBus(self):
-        print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
+        #print('logLevel= ' +str(logging.getLogger().getEffectiveLevel()) )
         LOG.info('PID=  ' +str(self._PID) ) 
         LOG.info('ID=   ' +self._ID)
         LOG.info('mq=   ' +self._mq)

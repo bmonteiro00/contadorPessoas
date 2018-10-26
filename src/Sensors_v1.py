@@ -68,7 +68,7 @@ class RFIDReader:
                                 self.LOG.warn('Tag nao reconhecido! [' +str(uid) +']' )
                                 self._blink.blink('RED', 2)
             
-                    time.sleep(.5)
+                    time.sleep(1)
                     
             except KeyboardInterrupt:
                 GPIO.cleanup()
@@ -131,9 +131,12 @@ class GPS:
                         self._gpsReport = report
                         #print(self._gpsReport )
                         #print('lon=' +str(report.lon) +'; lat=' +str(report.lat) )
-                        
+                
+                time.sleep(1)
+                
             except KeyError:
                 pass
+                
             except KeyboardInterrupt:
                 self.LOG.critical('GPS KeyboardInterrupt exception')
                 sys.exit(SENSOR_GPS_ERROR)
@@ -228,6 +231,7 @@ class Sensors:
             with open(filename) as f:
                 for line in f:
                     return line
+                    
         except IOError as e:
             self.LOG.error('I/O error[%s]: %s',  filename, str(e.strerror))
             return('I/O error!')
