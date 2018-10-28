@@ -44,8 +44,8 @@ class Contador:
         #cap = cv2.VideoCapture("C:\\Users\\Bruno\\Documents\\GitHub\\Contador\\d.mp4") #Captura um video
         #cap = cv2.VideoCapture("/home/vino/Documents/Contest2018/Cambus/contadorPessoas/src/videos/input2.avi") #Captura um video
         #cap = cv2.VideoCapture("/home/vino/Documents/Contest2018/Cambus/contadorPessoas/src/videos/cambus.avi")
-        cap = cv2.VideoCapture("/home/vino/Documents/Contest2018/Cambus/contadorPessoas/src/videos/sample-video.avi")
-       #cap = cv2.VideoCapture("/home/vino/Documents/Contest2018/Cambus/contadorPessoas/src/bus.avi") #Captura um video
+        #cap = cv2.VideoCapture("/home/vino/Documents/Contest2018/Cambus/contadorPessoas/src/videos/sample-video.avi")
+        cap = cv2.VideoCapture("/home/vino/Documents/Contest2018/Cambus/contadorPessoas/src/bus.avi") #Captura um video
 
         #Descomente para imprimir as propriedades do video
         """for i in range(19):
